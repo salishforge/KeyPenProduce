@@ -1,0 +1,54 @@
+{
+  "name": "keypenproduce",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "react-router typegen && wrangler types && tsc --noEmit",
+    "typegen": "wrangler types",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply keypenproduce-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply keypenproduce-db --remote",
+    "db:studio": "drizzle-kit studio",
+    "seed": "node scripts/seed.mjs",
+    "seed:remote": "node scripts/seed.mjs --remote"
+  },
+  "dependencies": {
+    "@react-router/node": "7.16.0",
+    "better-auth": "^1.2.8",
+    "drizzle-orm": "^0.45.2",
+    "isbot": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router": "7.16.0",
+    "resend": "^4.5.0",
+    "stripe": "^18.2.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.29.1",
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
+    "@playwright/test": "^1.52.0",
+    "@react-router/dev": "7.16.0",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "drizzle-kit": "^0.31.1",
+    "eslint": "^9.27.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.75.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
