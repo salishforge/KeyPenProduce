@@ -1,89 +1,48 @@
 import { Form, Link } from "react-router";
-import { and, eq, notInArray } from "drizzle-orm";
 import type { Route } from "./+types/window-listings";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
-import { listings, products, orderingWindows } from "~/db/schema";
-import { newId } from "~/lib/ids";
-import { parseDollarsToCents, formatCents } from "~/lib/money";
+import * as catalog from "~/services/catalog";
+import { formatCents } from "~/lib/money";
 import { TopNav } from "~/components/nav";
 import { AdminNav } from "~/components/admin-nav";
+import { LivePoll } from "~/components/live-poll";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
-  const [win] = await db
-    .select()
-    .from(orderingWindows)
-    .where(eq(orderingWindows.id, params.windowId));
+  const win = await catalog.getWindow(db, params.windowId);
   if (!win) throw new Response("Not found", { status: 404 });
-
-  const existing = await db
-    .select()
-    .from(listings)
-    .where(eq(listings.windowId, win.id));
-  const listedProductIds = existing.map((l) => l.productId);
-
-  // Active products not yet listed in this window.
-  const available = await db
-    .select()
-    .from(products)
-    .where(
-      listedProductIds.length
-        ? and(eq(products.isActive, true), notInArray(products.id, listedProductIds))
-        : eq(products.isActive, true),
-    );
+  const existing = await catalog.getWindowListings(db, win.id);
+  const available = await catalog.getUnlistedProducts(db, win.id);
   return { user, window: win, listings: existing, available };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  await requireRole(env, request, ["admin"]);
+  await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent"));
-  const nowDate = new Date();
 
   if (intent === "add") {
-    const productId = String(form.get("productId"));
-    const [p] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId));
-    if (!p) return { error: "Product not found." };
-    let price = 0;
-    let cost = 0;
     try {
-      price = parseDollarsToCents(String(form.get("price")));
-      cost = parseDollarsToCents(String(form.get("cost")));
-    } catch {
-      return { error: "Enter prices like 3.50" };
+      await catalog.addListing(db, {
+        windowId: params.windowId,
+        productId: String(form.get("productId") ?? ""),
+        priceDollars: String(form.get("price") ?? ""),
+        wholesaleCostDollars: String(form.get("cost") ?? ""),
+        quantityAvailable: Number(form.get("quantity") ?? 0),
+        staysOpenAfterCutoff: String(form.get("staysOpen")) === "on",
+      });
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : "Enter prices like 3.50",
+      };
     }
-    const qty = Math.max(0, Number(form.get("quantity") ?? 0));
-    await db.insert(listings).values({
-      id: newId("lst"),
-      windowId: params.windowId,
-      productId: p.id,
-      supplierId: p.supplierId,
-      displayName: p.name,
-      unit: p.unit,
-      priceCents: price,
-      wholesaleCostCents: cost,
-      quantityAvailable: qty,
-      quantityReserved: 0,
-      staysOpenAfterCutoff: String(form.get("staysOpen")) === "on",
-      status: "available",
-      createdAt: nowDate,
-      updatedAt: nowDate,
-    });
   } else if (intent === "withdraw") {
-    const id = String(form.get("id"));
-    await db
-      .update(listings)
-      .set({ status: "withdrawn", updatedAt: nowDate })
-      .where(eq(listings.id, id))
-      .run();
+    await catalog.withdrawListing(db, String(form.get("id") ?? ""));
   }
   return { ok: true };
 }
@@ -93,12 +52,18 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
+      <LivePoll />
       <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
         </p>
-        <h1>Availability for {win.label}</h1>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <h1>Availability for {win.label}</h1>
+          <span className="badge" title="Reserved counts update automatically">
+            ● live
+          </span>
+        </div>
 
         <div className="card">
           <h3>Add product to this week</h3>

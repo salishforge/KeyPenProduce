@@ -30,6 +30,12 @@ The order lifecycle is the core: **hold → committed → active → completed**
   webhook reconciliation (`app/stripe/webhook.server.ts`), in-person card via shared
   QR link, cash marked manually.
 - **Resend** for transactional email (`app/email/resend.server.ts`).
+- **Tailwind v4** (`@tailwindcss/vite`) + a small component kit (`app/components/ui/*`);
+  brand palette mapped to `@theme` tokens in `app/app.css` (legacy classes coexist).
+- **AI product-admin agent** on **Workers AI** (no third-party key): a per-user Durable
+  Object `ProductAdminAgent` (`app/agents/product-admin.ts`) runs a Vercel-AI-SDK
+  tool-calling loop (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` via `workers-ai-provider`)
+  over the shared catalog tools. Roles: `client`/`fulfillment`/`admin`/`product_admin`.
 
 ## Commands
 
@@ -78,7 +84,37 @@ After editing `wrangler.jsonc` or route modules, types come from
 - **Sales tax** is exempt (produce); `taxCents` exists in the schema (default 0) so it
   can be enabled later without a migration.
 
+## AI product-admin agent (non-obvious)
+
+- **One shared catalog write path.** `app/services/catalog.ts` is the single place
+  suppliers/products/listings/windows are created/updated (it owns `slugify` +
+  `parseDollarsToCents`). Both the manual admin forms AND the AI tools call it, so they
+  can never drift. Money crosses the AI tool boundary as **dollar strings** ("3.50");
+  units/statuses are `z.enum(...)` from the schema constants.
+- **Agent routing + auth.** `workers/app.ts` routes `/agents/*` to the per-user DO
+  (`idFromName(userId)`) only after `getSessionUser` confirms `admin`/`product_admin`;
+  verified identity is forwarded via `x-kpp-user-*` headers, never trusted from the body.
+  The DO class is re-exported from `workers/app.ts` (required for the wrangler migration).
+- **Auto-apply + undo.** Writes apply immediately and record an inverse op in
+  `catalog_undo_log` (`app/services/undo.ts`); the `undo_last` tool / "Undo last" button
+  reverts the most recent change (refuses if customers have since reserved).
+- **Spreadsheet import.** `/api/catalog-import` parses CSV (`parseCsv` in `app/lib/csv.ts`)
+  or XLSX (SheetJS) in the Worker; the assistant page feeds a preview to the agent, which
+  maps columns, asks clarifying questions, and applies via `bulk_import`.
+- **Real-time availability.** `app/components/live-poll.tsx` (`useRevalidator`) re-runs the
+  availability loader on an interval so reserved counts update live.
+- **Testing the agent.** Don't test through the model — call each tool's `execute` directly
+  (`test/agent-tools.test.ts`). We deliberately avoided the `agents`/`@cloudflare/ai-chat`
+  packages (they force zod v4, conflicting with better-auth/drizzle) and rolled the DO.
+
 ## Toolchain gotcha (important)
+
+The `cloudflare()` plugin uses **`remoteBindings: false`** (`vite.config.ts`) so `npm run dev`
+boots without a Cloudflare login — Workers AI (`env.AI`) is remote-only and would otherwise
+force a login-gated proxy at startup. Locally the assistant's model calls no-op (handled
+gracefully); they work once deployed (or after `wrangler login`). The catalog forms,
+storefront, and the rest of the admin all run locally regardless.
+
 
 The build only works with React Router's `future.v8_viteEnvironmentApi: true`
 (`react-router.config.ts`) — this routes the build through the `@cloudflare/vite-plugin`

@@ -1,9 +1,10 @@
 import { Form, Link, redirect } from "react-router";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Route } from "./+types/window-detail";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { orderingWindows, orders, listings } from "~/db/schema";
+import * as catalog from "~/services/catalog";
 import { commitWindow } from "~/services/commit";
 import { generateSupplierSheets } from "~/services/reconcile";
 import { TopNav } from "~/components/nav";
@@ -12,7 +13,9 @@ import { formatInZone } from "~/lib/time";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  // product_admin can view + manage availability/lifecycle; finance-bearing
+  // transitions (commit) are re-checked admin-only inside the action.
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const [win] = await db
     .select()
@@ -32,7 +35,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -41,29 +44,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   switch (intent) {
     case "open":
-      await db
-        .update(orderingWindows)
-        .set({ status: "open", updatedAt: nowDate })
-        .where(and(eq(orderingWindows.id, id), eq(orderingWindows.status, "draft")))
-        .run();
+      await catalog.openWindow(db, id);
       break;
     case "close":
-      await db
-        .update(orderingWindows)
-        .set({ status: "closed", updatedAt: nowDate })
-        .where(and(eq(orderingWindows.id, id), eq(orderingWindows.status, "open")))
-        .run();
-      await db
-        .update(listings)
-        .set({ status: "closed", updatedAt: nowDate })
-        .where(
-          and(
-            eq(listings.windowId, id),
-            inArray(listings.status, ["available", "sold_out"]),
-            eq(listings.staysOpenAfterCutoff, false),
-          ),
-        )
-        .run();
+      await catalog.closeWindow(db, id);
       break;
     case "toggle-reopen": {
       const [w] = await db
@@ -78,10 +62,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       break;
     }
     case "commit":
+      // Finance-bearing: admin only.
+      await requireRole(env, request, ["admin"]);
       await commitWindow(db, env, id, user.id);
       await generateSupplierSheets(db, id);
       return redirect(`/admin/windows/${id}/sheets`);
     case "complete":
+      await requireRole(env, request, ["admin"]);
       await db
         .update(orderingWindows)
         .set({ status: "completed", completedAt: nowDate, updatedAt: nowDate })
@@ -97,7 +84,7 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
       <main className="container">
         <p>
           <Link to="/admin/windows">← Windows</Link>

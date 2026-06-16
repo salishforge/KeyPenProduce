@@ -1,54 +1,41 @@
 import { Form, Link, redirect } from "react-router";
-import { desc } from "drizzle-orm";
 import type { Route } from "./+types/windows";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
-import { orderingWindows } from "~/db/schema";
-import { newId } from "~/lib/ids";
+import * as catalog from "~/services/catalog";
 import { TopNav } from "~/components/nav";
 import { AdminNav } from "~/components/admin-nav";
 import { formatInZone } from "~/lib/time";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
-  const windows = await db
-    .select()
-    .from(orderingWindows)
-    .orderBy(desc(orderingWindows.opensAt));
+  const windows = await catalog.listWindows(db);
   return { user, windows };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  await requireRole(env, request, ["admin"]);
+  await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
-  const label = String(form.get("label") ?? "").trim();
-  const opensAt = new Date(String(form.get("opensAt")));
-  const closesAt = new Date(String(form.get("closesAt")));
-  const pickupDate = new Date(String(form.get("pickupDate")));
-  if (!label || isNaN(opensAt.getTime()) || isNaN(closesAt.getTime())) {
-    return { error: "Label, open and cutoff times are required." };
+  const pickupRaw = String(form.get("pickupDate") ?? "");
+  const closesRaw = String(form.get("closesAt") ?? "");
+  try {
+    const win = await catalog.createWindow(db, {
+      label: String(form.get("label") ?? ""),
+      opensAt: String(form.get("opensAt") ?? ""),
+      closesAt: closesRaw,
+      // Default pickup to the cutoff if left blank.
+      pickupDate: pickupRaw || closesRaw,
+    });
+    return redirect(`/admin/windows/${win.id}`);
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Could not create window.",
+    };
   }
-  if (closesAt <= opensAt) {
-    return { error: "Cutoff must be after the open time." };
-  }
-  const id = newId("win");
-  const nowDate = new Date();
-  await db.insert(orderingWindows).values({
-    id,
-    label,
-    status: "draft",
-    opensAt,
-    closesAt,
-    pickupDate: isNaN(pickupDate.getTime()) ? closesAt : pickupDate,
-    reopenForEveryone: false,
-    createdAt: nowDate,
-    updatedAt: nowDate,
-  });
-  return redirect(`/admin/windows/${id}`);
 }
 
 export default function Windows({ loaderData }: Route.ComponentProps) {
@@ -56,7 +43,7 @@ export default function Windows({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
       <main className="container">
         <h1>Ordering windows</h1>
         <Form method="post" className="card">

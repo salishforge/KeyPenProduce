@@ -1,15 +1,26 @@
 import { NavLink } from "react-router";
+import type { UserRole } from "~/db/schema";
 
-const links = [
+interface NavItem {
+  to: string;
+  label: string;
+  end?: boolean;
+  adminOnly?: boolean;
+}
+
+const links: NavItem[] = [
   { to: "/admin", label: "Dashboard", end: true },
   { to: "/admin/suppliers", label: "Suppliers" },
   { to: "/admin/products", label: "Products" },
   { to: "/admin/windows", label: "Windows" },
-  { to: "/admin/finance", label: "Finance" },
-  { to: "/admin/users", label: "Users" },
+  { to: "/admin/assistant", label: "Assistant" },
+  { to: "/admin/finance", label: "Finance", adminOnly: true },
+  { to: "/admin/users", label: "Users", adminOnly: true },
 ];
 
-export function AdminNav() {
+/** Admin sub-nav. Finance + Users are admin-only; product_admin sees the rest. */
+export function AdminNav({ role }: { role: UserRole }) {
+  const visible = links.filter((l) => !l.adminOnly || role === "admin");
   return (
     <div
       className="row"
@@ -20,7 +31,7 @@ export function AdminNav() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {links.map((l) => (
+      {visible.map((l) => (
         <NavLink
           key={l.to}
           to={l.to}

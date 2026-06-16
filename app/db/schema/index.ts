@@ -4,3 +4,4 @@ export * from "./catalog";
 export * from "./ordering";
 export * from "./fulfillment";
 export * from "./finance";
+export * from "./audit";

@@ -6,6 +6,19 @@ import { getDb } from "~/db/client";
 import { orderingWindows, orders, suppliers, products } from "~/db/schema";
 import { TopNav } from "~/components/nav";
 import { AdminNav } from "~/components/admin-nav";
+import {
+  Container,
+  PageHeader,
+  Card,
+  CardTitle,
+  CardRow,
+  LinkButton,
+  Badge,
+  Table,
+  THead,
+  TH,
+  TD,
+} from "~/components/ui";
 import { formatInZone } from "~/lib/time";
 
 export function meta() {
@@ -14,7 +27,7 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const windows = await db
     .select()
@@ -34,72 +47,102 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return { user, windows, supplierCount, productCount, openOrders };
 }
 
+function Stat({
+  value,
+  label,
+  to,
+}: {
+  value: number;
+  label: string;
+  to?: string;
+}) {
+  return (
+    <Card>
+      <div className="text-3xl font-bold text-ink">{value}</div>
+      <div className="text-sm text-muted">{label}</div>
+      {to && (
+        <Link to={to} className="mt-1 inline-block text-sm text-brand-dark">
+          Manage →
+        </Link>
+      )}
+    </Card>
+  );
+}
+
 export default function AdminHome({ loaderData }: Route.ComponentProps) {
   const { user, windows, supplierCount, productCount, openOrders } = loaderData;
   return (
-    <>
+    <div className="min-h-screen bg-canvas text-ink">
       <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
-        <h1>Admin dashboard</h1>
-        <div className="grid">
-          <div className="card">
-            <h3>{supplierCount}</h3>
-            <div className="muted">Suppliers</div>
-            <Link to="/admin/suppliers">Manage</Link>
-          </div>
-          <div className="card">
-            <h3>{productCount}</h3>
-            <div className="muted">Products</div>
-            <Link to="/admin/products">Manage</Link>
-          </div>
-          <div className="card">
-            <h3>{openOrders}</h3>
-            <div className="muted">Placed (uncommitted) orders</div>
-          </div>
+      <AdminNav role={user.role} />
+      <Container>
+        <PageHeader
+          title="Dashboard"
+          subtitle="Manage your catalog, availability, and the week's orders."
+        />
+
+        <Card className="mb-5 bg-gradient-to-r from-emerald-50 to-card">
+          <CardRow className="justify-between">
+            <div>
+              <CardTitle>Catalog assistant</CardTitle>
+              <p className="mt-1 text-sm text-muted">
+                Add products, set availability, or import a spreadsheet just by
+                chatting — in plain English.
+              </p>
+            </div>
+            <LinkButton to="/admin/assistant">Open assistant</LinkButton>
+          </CardRow>
+        </Card>
+
+        <div className="mb-5 grid gap-4 sm:grid-cols-3">
+          <Stat value={supplierCount} label="Suppliers" to="/admin/suppliers" />
+          <Stat value={productCount} label="Products" to="/admin/products" />
+          <Stat value={openOrders} label="Placed (uncommitted) orders" />
         </div>
 
-        <div className="card">
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2>Ordering windows</h2>
-            <Link to="/admin/windows" className="btn">
+        <Card>
+          <CardRow className="mb-3 justify-between">
+            <CardTitle>Ordering windows</CardTitle>
+            <LinkButton to="/admin/windows" variant="secondary" size="sm">
               New / manage windows
-            </Link>
-          </div>
-          <table>
-            <thead>
+            </LinkButton>
+          </CardRow>
+          <Table>
+            <THead>
               <tr>
-                <th>Window</th>
-                <th>Status</th>
-                <th>Opens</th>
-                <th>Cutoff</th>
-                <th>Pickup</th>
-                <th></th>
+                <TH>Window</TH>
+                <TH>Status</TH>
+                <TH>Opens</TH>
+                <TH>Cutoff</TH>
+                <TH>Pickup</TH>
+                <TH></TH>
               </tr>
-            </thead>
+            </THead>
             <tbody>
               {windows.map((w) => (
                 <tr key={w.id}>
-                  <td>{w.label}</td>
-                  <td>
-                    <span className="badge">{w.status}</span>
-                  </td>
-                  <td>{formatInZone(new Date(w.opensAt))}</td>
-                  <td>{formatInZone(new Date(w.closesAt))}</td>
-                  <td>
+                  <TD className="font-medium">{w.label}</TD>
+                  <TD>
+                    <Badge>{w.status}</Badge>
+                  </TD>
+                  <TD>{formatInZone(new Date(w.opensAt))}</TD>
+                  <TD>{formatInZone(new Date(w.closesAt))}</TD>
+                  <TD>
                     {formatInZone(new Date(w.pickupDate), undefined, {
                       dateStyle: "medium",
                     })}
-                  </td>
-                  <td>
-                    <Link to={`/admin/windows/${w.id}`}>Open</Link>
-                  </td>
+                  </TD>
+                  <TD>
+                    <Link to={`/admin/windows/${w.id}`} className="text-brand-dark">
+                      Open
+                    </Link>
+                  </TD>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </main>
-    </>
+          </Table>
+        </Card>
+      </Container>
+    </div>
   );
 }

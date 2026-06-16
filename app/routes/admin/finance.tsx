@@ -28,7 +28,7 @@ export default function Finance({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
       <main className="container">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h1>Finance</h1>
