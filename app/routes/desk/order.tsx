@@ -8,7 +8,7 @@ import {
   markOrderPaidManually,
   markOrderCompleted,
 } from "~/services/payments";
-import { TopNav } from "~/components/nav";
+import { DeskHeader } from "~/components/desk/DeskHeader";
 import { formatCents } from "~/lib/money";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -71,8 +71,20 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return redirect(`/desk/order/${order.id}`);
 }
 
+function orderStatusVariant(status: string) {
+  if (status === "active" || status === "completed") return "kp-badge--ok";
+  if (status === "committed") return "kp-badge--active";
+  return "kp-badge--draft";
+}
+
+function paymentStatusVariant(status: string) {
+  if (status === "paid") return "kp-badge--ok";
+  if (status === "partially_paid") return "kp-badge--active";
+  return "kp-badge--draft";
+}
+
 export default function DeskOrder({ loaderData }: Route.ComponentProps) {
-  const { user, order, customer, lines } = loaderData;
+  const { user: _user, order, customer, lines } = loaderData;
   const payUrl = order.stripePaymentLinkUrl;
   const qrSrc = payUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(payUrl)}`
@@ -80,83 +92,152 @@ export default function DeskOrder({ loaderData }: Route.ComponentProps) {
   const active = lines.filter((l) => l.status !== "cancelled");
   return (
     <>
-      <TopNav user={user} />
-      <main className="container">
+      <DeskHeader />
+      <main className="kp-cart">
         <p>
-          <Link to="/desk">← Pickup desk</Link>
+          <Link to="/desk" className="kp-muted" style={{ fontSize: "0.88rem" }}>
+            ← Pickup desk
+          </Link>
         </p>
-        <div className="card">
-          <h1>{customer?.name}</h1>
-          <p className="muted">Pickup name: {order.pickupName ?? customer?.name}</p>
-          <div className="row">
-            <span className="badge">{order.status}</span>
-            <span className="badge">{order.paymentStatus}</span>
+
+        <div className="kp-card" style={{ padding: "1.2rem", marginBottom: "1rem" }}>
+          <h1 style={{ marginTop: 0, marginBottom: "0.35rem" }}>{customer?.name}</h1>
+          <p className="kp-muted" style={{ margin: "0 0 0.5rem", fontSize: "0.88rem" }}>
+            Pickup name: {order.pickupName ?? customer?.name}
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <span className={`kp-badge ${orderStatusVariant(order.status)}`}>
+              {order.status}
+            </span>
+            <span className={`kp-badge ${paymentStatusVariant(order.paymentStatus)}`}>
+              {order.paymentStatus}
+            </span>
           </div>
         </div>
 
-        <table className="card">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {active.map((l) => (
-              <tr key={l.id}>
-                <td>
-                  {l.displayName}
-                  {l.status === "shortfall" && <span className="badge"> short</span>}
-                </td>
-                <td>{l.quantityFulfilled ?? l.quantity}</td>
-                <td>{formatCents(l.lineSubtotalCents)}</td>
+        <div className="kp-ledger-wrap" style={{ marginBottom: "1rem" }}>
+          <div className="kp-ledger-head">
+            <h3>Line items</h3>
+          </div>
+          <table className="kp-ledger">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th className="num">Qty</th>
+                <th className="num">Subtotal</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {active.map((l) => (
+                <tr key={l.id}>
+                  <td className="prod">
+                    {l.displayName}
+                    {l.status === "shortfall" && (
+                      <span
+                        className="kp-badge kp-badge--out"
+                        style={{ marginLeft: "0.4rem" }}
+                      >
+                        short
+                      </span>
+                    )}
+                  </td>
+                  <td className="num">{l.quantityFulfilled ?? l.quantity}</td>
+                  <td className="num" style={{ fontWeight: 600 }}>
+                    {formatCents(l.lineSubtotalCents)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-        <div className="card">
-          <h2>Total due: {formatCents(order.totalCents)}</h2>
+        <div className="kp-card" style={{ padding: "1.2rem" }}>
+          <h2
+            style={{
+              margin: "0 0 1rem",
+              fontFamily: "var(--kp-font-display)",
+              fontWeight: 700,
+            }}
+          >
+            Total due: {formatCents(order.totalCents)}
+          </h2>
+
           {order.paymentStatus === "paid" ? (
-            <p>✓ Paid ({order.paymentMethod})</p>
+            <p className="kp-muted" style={{ margin: "0 0 1rem" }}>
+              <span className="kp-badge kp-badge--ok">Paid</span>{" "}
+              {order.paymentMethod}
+            </p>
           ) : (
             <>
               {qrSrc && (
-                <div>
-                  <p className="muted">
+                <div
+                  className="kp-card"
+                  style={{
+                    padding: "1rem",
+                    marginBottom: "1rem",
+                    display: "inline-block",
+                  }}
+                >
+                  <p
+                    className="kp-muted"
+                    style={{ margin: "0 0 0.6rem", fontSize: "0.85rem" }}
+                  >
                     Card: have the customer scan to pay on their phone.
                   </p>
                   <img src={qrSrc} alt="Payment QR code" width={180} height={180} />
+                  {payUrl && (
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
+                      <a
+                        className="kp-muted"
+                        href={payUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open payment link
+                      </a>
+                    </p>
+                  )}
                 </div>
               )}
-              <div className="row" style={{ marginTop: "1rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.6rem",
+                  flexWrap: "wrap",
+                  marginBottom: "0.75rem",
+                }}
+              >
                 <Form method="post">
                   <input type="hidden" name="intent" value="pay-card" />
-                  <button type="submit" className="secondary">
+                  <button type="submit" className="kp-btn kp-btn--outline">
                     Mark paid (card)
                   </button>
                 </Form>
                 <Form method="post">
                   <input type="hidden" name="intent" value="pay-cash" />
-                  <button type="submit" className="secondary">
+                  <button type="submit" className="kp-btn kp-btn--outline">
                     Mark paid (cash)
                   </button>
                 </Form>
               </div>
             </>
           )}
-          <div className="row" style={{ marginTop: "1rem" }}>
+
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             {order.paymentStatus !== "paid" && (
               <Form method="post">
                 <input type="hidden" name="intent" value="pay-and-complete" />
-                <button type="submit">Cash paid &amp; picked up</button>
+                <button type="submit" className="kp-btn kp-btn--primary">
+                  Cash paid &amp; picked up
+                </button>
               </Form>
             )}
             {order.status !== "completed" && (
               <Form method="post">
                 <input type="hidden" name="intent" value="complete" />
-                <button type="submit">Mark picked up</button>
+                <button type="submit" className="kp-btn kp-btn--outline">
+                  Mark picked up
+                </button>
               </Form>
             )}
           </div>

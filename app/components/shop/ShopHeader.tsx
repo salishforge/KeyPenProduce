@@ -3,9 +3,14 @@
  *
  * Intended location: app/components/shop/ShopHeader.tsx
  */
-import { Link } from "react-router";
+import { Form, Link } from "react-router";
 import { LeafMark } from "~/components/ui/Icons";
 
+/**
+ * The shared customer header — wordmark, customer nav, live cart pill, sign-out.
+ * Used across the storefront and the signed-in customer pages (orders, account)
+ * so they share one chrome. Sign-out posts to the /logout route action.
+ */
 export function ShopHeader({ basketCount }: { basketCount: number }) {
   return (
     <header className="kp-shop-top">
@@ -15,11 +20,16 @@ export function ShopHeader({ basketCount }: { basketCount: number }) {
       </Link>
       <nav className="kp-shop-nav">
         <Link to="/shop">This week</Link>
-        <Link to="/shop#how-it-works">How it works</Link>
-        <Link to="/orders">Account</Link>
+        <Link to="/orders">My orders</Link>
+        <Link to="/account">Account</Link>
         <Link to="/cart" className="kp-cart-pill">
           Basket · {basketCount}
         </Link>
+        <Form method="post" action="/logout">
+          <button type="submit" className="kp-btn kp-btn--ghost kp-btn--sm">
+            Sign out
+          </button>
+        </Form>
       </nav>
     </header>
   );

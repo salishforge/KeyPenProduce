@@ -3,6 +3,7 @@ import type { Route } from "./+types/signup";
 import { createAuth } from "~/auth/auth.server";
 import { getSessionUser, landingPathForRole } from "~/auth/session.server";
 import { redirectWithCookies } from "~/auth/forward";
+import { LeafMark } from "~/components/ui/Icons";
 
 export function meta() {
   return [{ title: "Create account · Key Pen Produce" }];
@@ -57,46 +58,87 @@ export default function Signup() {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirectTo") ?? "/";
   return (
-    <main className="container" style={{ maxWidth: 420 }}>
-      <h1>Create your account</h1>
-      <p className="muted">
-        You'll be set up as a customer. Browse the week's produce and reserve
-        what you'd like to pick up.
-      </p>
-      {actionData?.error && <p className="error">{actionData.error}</p>}
-      <Form method="post" className="card">
+    <main className="kp-auth">
+      <div className="kp-auth__brand">
+        <LeafMark size={28} style={{ color: "var(--kp-tide)" }} />
+        <span className="kp-wordmark" style={{ fontSize: "1.1rem" }}>
+          Key Pen Produce
+        </span>
+      </div>
+
+      {actionData?.error && <p className="kp-error">{actionData.error}</p>}
+
+      <Form method="post" className="kp-card kp-auth__card">
         <input type="hidden" name="redirectTo" value={redirectTo} />
         <input type="hidden" name="intent" value="password" />
-        <label>Name</label>
-        <input name="name" required autoComplete="name" />
-        <label>Email</label>
-        <input name="email" type="email" required autoComplete="email" />
-        <label>Password</label>
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-        />
-        <div style={{ marginTop: "1rem" }}>
-          <button type="submit">Create account</button>
-        </div>
+        <h2 className="kp-auth__heading">Create your account</h2>
+        <p className="kp-muted" style={{ margin: "0 0 1rem", fontSize: "0.88rem" }}>
+          You'll be set up as a customer. Browse the week's produce and reserve
+          what you'd like to pick up.
+        </p>
+        <label className="kp-field">
+          <span className="kp-field__label">Name</span>
+          <input
+            className="kp-input"
+            name="name"
+            required
+            autoComplete="name"
+          />
+        </label>
+        <label className="kp-field">
+          <span className="kp-field__label">Email</span>
+          <input
+            className="kp-input"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+          />
+        </label>
+        <label className="kp-field">
+          <span className="kp-field__label">Password</span>
+          <input
+            className="kp-input"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+          />
+        </label>
+        <button className="kp-btn kp-btn--primary kp-auth__submit" type="submit">
+          Create account
+        </button>
       </Form>
-      <div className="card">
-        <p className="muted">Or sign up with</p>
-        <Form method="post" className="row">
+
+      <div className="kp-card kp-auth__card">
+        <p className="kp-muted" style={{ margin: "0 0 0.75rem", fontSize: "0.88rem" }}>
+          Or sign up with
+        </p>
+        <Form method="post" style={{ display: "flex", gap: "0.6rem" }}>
           <input type="hidden" name="redirectTo" value={redirectTo} />
-          <button name="intent" value="google" className="secondary">
+          <button
+            name="intent"
+            value="google"
+            className="kp-btn kp-btn--outline"
+            style={{ flex: 1, justifyContent: "center" }}
+          >
             Google
           </button>
-          <button name="intent" value="facebook" className="secondary">
+          <button
+            name="intent"
+            value="facebook"
+            className="kp-btn kp-btn--outline"
+            style={{ flex: 1, justifyContent: "center" }}
+          >
             Facebook
           </button>
         </Form>
       </div>
-      <p>
-        Already have an account? <Link to="/login">Sign in</Link>
+
+      <p className="kp-muted" style={{ fontSize: "0.88rem", textAlign: "center" }}>
+        Already have an account?{" "}
+        <Link to="/login">Sign in</Link>
       </p>
     </main>
   );

@@ -221,3 +221,29 @@
   color: var(--kp-ink-soft);
   margin: 0.4rem 0 0.9rem;
 }
+
+/* Auth — centered login / signup / password pages --------------------------- */
+.kp-auth {
+  max-width: 26rem;
+  margin: 3rem auto 4rem;
+  padding: 0 clamp(1rem, 4vw, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.kp-auth__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-bottom: 0.5rem;
+}
+.kp-auth__card { padding: 1.4rem; }
+.kp-auth__heading {
+  font-family: var(--kp-font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 0 0 1.1rem;
+}
+.kp-auth__submit { width: 100%; justify-content: center; }
+

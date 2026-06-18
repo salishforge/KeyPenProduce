@@ -1,6 +1,7 @@
 import { Form, Link, useActionData, useSearchParams } from "react-router";
 import type { Route } from "./+types/reset-password";
 import { createAuth } from "~/auth/auth.server";
+import { LeafMark } from "~/components/ui/Icons";
 
 export function meta() {
   return [{ title: "Set new password · Key Pen Produce" }];
@@ -26,27 +27,45 @@ export default function ResetPassword() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   return (
-    <main className="container" style={{ maxWidth: 420 }}>
-      <h1>Set a new password</h1>
+    <main className="kp-auth">
+      <div className="kp-auth__brand">
+        <LeafMark size={28} style={{ color: "var(--kp-tide)" }} />
+        <span className="kp-wordmark" style={{ fontSize: "1.1rem" }}>
+          Key Pen Produce
+        </span>
+      </div>
+
       {actionData?.ok ? (
-        <p>
-          Your password has been reset. <Link to="/login">Sign in</Link>.
-        </p>
+        <div className="kp-card kp-auth__card">
+          <h2 className="kp-auth__heading">Password updated</h2>
+          <p className="kp-muted" style={{ margin: "0 0 1rem", fontSize: "0.9rem" }}>
+            Your password has been reset.
+          </p>
+          <Link to="/login" className="kp-btn kp-btn--primary kp-auth__submit">
+            Sign in
+          </Link>
+        </div>
       ) : (
-        <Form method="post" className="card">
+        <Form method="post" className="kp-card kp-auth__card">
           <input type="hidden" name="token" value={token} />
-          {actionData?.error && <p className="error">{actionData.error}</p>}
-          <label>New password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-          <div style={{ marginTop: "1rem" }}>
-            <button type="submit">Update password</button>
-          </div>
+          <h2 className="kp-auth__heading">Set a new password</h2>
+          {actionData?.error && (
+            <p className="kp-error">{actionData.error}</p>
+          )}
+          <label className="kp-field">
+            <span className="kp-field__label">New password</span>
+            <input
+              className="kp-input"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+          <button className="kp-btn kp-btn--primary kp-auth__submit" type="submit">
+            Update password
+          </button>
         </Form>
       )}
     </main>
