@@ -16,16 +16,19 @@ interface NavItem {
   end?: boolean;
 }
 
+// Routes must match app/routes.ts. Window sub-pages (listings, reconcile,
+// sheets, reservations) hang off a specific /admin/windows/:id, so they aren't
+// top-level nav — they're reached from the windows screen.
 const PRIMARY: NavItem[] = [
   { to: "/admin", label: "This week", end: true },
-  { to: "/admin/listings", label: "Listings" },
+  { to: "/admin/windows", label: "Windows" },
+  { to: "/admin/products", label: "Products" },
   { to: "/admin/suppliers", label: "Suppliers" },
-  { to: "/admin/reconcile", label: "Reconcile" },
 ];
 
 const RECORDS: NavItem[] = [
-  { to: "/admin/weeks", label: "Past weeks" },
-  { to: "/admin/customers", label: "Customers" },
+  { to: "/admin/finance", label: "Finance" },
+  { to: "/admin/users", label: "Customers" },
   { to: "/admin/settings", label: "Settings" },
 ];
 

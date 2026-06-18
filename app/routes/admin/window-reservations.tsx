@@ -73,69 +73,93 @@ export default function WindowReservations({ loaderData }: Route.ComponentProps)
   const { window: win, demand, orders } = loaderData;
   const canCommit = win.status === "open" || win.status === "closed";
   return (
-    <main className="container">
-        <p>
-          <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
-        </p>
-        <h1>Reservations — {win.label}</h1>
-
-        <div className="card">
-          <h3>Demand by product</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Qty reserved</th>
-                <th>Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {demand.map((d) => (
-                <tr key={d.productId}>
-                  <td>
-                    {d.displayName} ({d.unit})
-                  </td>
-                  <td>{d.qty}</td>
-                  <td>{formatCents(d.revenue)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">
+            <Link to={`/admin/windows/${win.id}`} className="kp-linkact">{win.label}</Link>
+          </p>
+          <h1>Reservations</h1>
+          <p className="kp-st-head__meta">Held and committed orders for this window.</p>
         </div>
-
-        <div className="card">
-          <h3>Orders</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td>{o.customer}</td>
-                  <td>
-                    <span className="badge">{o.status}</span>
-                  </td>
-                  <td>{formatCents(o.totalCents)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
         {canCommit && (
-          <Form method="post" className="card">
-            <p>
-              Committing confirms all placed orders, generates invoices, emails
-              customers, and builds the per-supplier pickup sheets.
-            </p>
-            <button type="submit">Commit orders &amp; invoice</button>
-          </Form>
+          <div className="kp-st-actions">
+            <Form method="post">
+              <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+                Commit orders &amp; invoice
+              </button>
+            </Form>
+          </div>
         )}
-      </main>
+      </div>
+
+      <div className="kp-ledger-wrap" style={{ marginBottom: "1.4rem" }}>
+        <div className="kp-ledger-head">
+          <h3>Demand by product</h3>
+        </div>
+        <table className="kp-ledger">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th className="num">Qty reserved</th>
+              <th className="num">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {demand.map((d) => (
+              <tr key={d.productId}>
+                <td>
+                  {d.displayName} ({d.unit})
+                </td>
+                <td className="num">{d.qty}</td>
+                <td className="num">{formatCents(d.revenue)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="kp-ledger-wrap" style={{ marginBottom: "1.4rem" }}>
+        <div className="kp-ledger-head">
+          <h3>Orders</h3>
+        </div>
+        <table className="kp-ledger">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Status</th>
+              <th className="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o) => (
+              <tr key={o.id}>
+                <td>{o.customer}</td>
+                <td>
+                  <span className={
+                    o.status === "committed" ? "kp-badge kp-badge--ok" : "kp-badge kp-badge--draft"
+                  }>{o.status}</span>
+                </td>
+                <td className="num">{formatCents(o.totalCents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {canCommit && (
+        <div className="kp-card" style={{ padding: "1.1rem" }}>
+          <p className="kp-muted" style={{ margin: "0 0 0.8rem" }}>
+            Committing confirms all placed orders, generates invoices, emails
+            customers, and builds the per-supplier pickup sheets.
+          </p>
+          <Form method="post">
+            <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+              Commit orders &amp; invoice
+            </button>
+          </Form>
+        </div>
+      )}
+    </>
   );
 }

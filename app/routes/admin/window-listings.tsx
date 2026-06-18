@@ -89,62 +89,72 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function WindowListings({ loaderData }: Route.ComponentProps) {
   const { window: win, listings, available } = loaderData;
   return (
-    <main className="container">
-        <p>
-          <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
-        </p>
-        <h1>Availability for {win.label}</h1>
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">
+            <Link to={`/admin/windows/${win.id}`} className="kp-linkact">{win.label}</Link>
+          </p>
+          <h1>Availability</h1>
+          <p className="kp-st-head__meta">Products listed for this window and their stock.</p>
+        </div>
+      </div>
 
-        <div className="card">
-          <h3>Add product to this week</h3>
-          {available.length === 0 ? (
-            <p className="muted">All active products are already listed.</p>
-          ) : (
-            <Form method="post" className="grid">
-              <input type="hidden" name="intent" value="add" />
-              <div>
-                <label>Product</label>
-                <select name="productId" required>
+      <div className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
+        <h3 style={{ margin: "0 0 0.8rem" }}>Add product to this week</h3>
+        {available.length === 0 ? (
+          <p className="kp-muted" style={{ margin: 0 }}>All active products are already listed.</p>
+        ) : (
+          <Form method="post">
+            <input type="hidden" name="intent" value="add" />
+            <div className="kp-row">
+              <label className="kp-field">
+                <span className="kp-field__label">Product</span>
+                <select className="kp-select" name="productId" required>
                   {available.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.unit})
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label>Retail price ($)</label>
-                <input name="price" placeholder="3.50" required />
-              </div>
-              <div>
-                <label>Wholesale cost ($)</label>
-                <input name="cost" placeholder="2.00" required />
-              </div>
-              <div>
-                <label>Quantity available</label>
-                <input name="quantity" type="number" min={0} defaultValue={0} />
-              </div>
-              <div>
-                <label>
-                  <input type="checkbox" name="staysOpen" /> Stays open after
-                  cutoff
-                </label>
-              </div>
-              <div style={{ alignSelf: "end" }}>
-                <button type="submit">Add listing</button>
-              </div>
-            </Form>
-          )}
-        </div>
+              </label>
+              <label className="kp-field">
+                <span className="kp-field__label">Retail price ($)</span>
+                <input className="kp-input" name="price" placeholder="3.50" required />
+              </label>
+              <label className="kp-field">
+                <span className="kp-field__label">Wholesale cost ($)</span>
+                <input className="kp-input" name="cost" placeholder="2.00" required />
+              </label>
+              <label className="kp-field">
+                <span className="kp-field__label">Quantity available</span>
+                <input className="kp-input" name="quantity" type="number" min={0} defaultValue={0} />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "0.8rem" }}>
+              <label style={{ display: "flex", gap: "0.4rem", alignItems: "center", fontSize: "0.88rem" }}>
+                <input type="checkbox" name="staysOpen" /> Stays open after cutoff
+              </label>
+            </div>
+            <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+              Add listing
+            </button>
+          </Form>
+        )}
+      </div>
 
-        <table className="card">
+      <div className="kp-ledger-wrap">
+        <div className="kp-ledger-head">
+          <h3>Listed products</h3>
+        </div>
+        <table className="kp-ledger">
           <thead>
             <tr>
               <th>Product</th>
-              <th>Price</th>
-              <th>Cost</th>
-              <th>Avail</th>
-              <th>Reserved</th>
+              <th className="num">Price</th>
+              <th className="num">Cost</th>
+              <th className="num">Avail</th>
+              <th className="num">Reserved</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -155,22 +165,26 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
                 <td>
                   {l.displayName}
                   {l.staysOpenAfterCutoff && (
-                    <span className="badge"> stays open</span>
+                    <span className="kp-badge" style={{ marginLeft: "0.4rem" }}>stays open</span>
                   )}
                 </td>
-                <td>{formatCents(l.priceCents)}</td>
-                <td>{formatCents(l.wholesaleCostCents)}</td>
-                <td>{l.quantityAvailable}</td>
-                <td>{l.quantityReserved}</td>
+                <td className="num">{formatCents(l.priceCents)}</td>
+                <td className="num">{formatCents(l.wholesaleCostCents)}</td>
+                <td className="num">{l.quantityAvailable}</td>
+                <td className="num">{l.quantityReserved}</td>
                 <td>
-                  <span className="badge">{l.status}</span>
+                  <span className={
+                    l.status === "available" ? "kp-badge kp-badge--ok" :
+                    l.status === "sold_out" ? "kp-badge kp-badge--out" :
+                    "kp-badge kp-badge--draft"
+                  }>{l.status}</span>
                 </td>
                 <td>
                   {l.status !== "withdrawn" && (
                     <Form method="post">
                       <input type="hidden" name="intent" value="withdraw" />
                       <input type="hidden" name="id" value={l.id} />
-                      <button className="danger" type="submit">
+                      <button className="kp-btn kp-btn--danger kp-btn--sm" type="submit">
                         Withdraw
                       </button>
                     </Form>
@@ -180,6 +194,7 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
             ))}
           </tbody>
         </table>
-      </main>
+      </div>
+    </>
   );
 }

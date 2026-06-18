@@ -69,68 +69,81 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Products({ loaderData }: Route.ComponentProps) {
   const { products, suppliers } = loaderData;
   return (
-    <main className="container">
-        <h1>Products</h1>
-        {suppliers.length === 0 ? (
-          <div className="card">
-            <p>Add an active supplier first.</p>
-          </div>
-        ) : (
-          <Form method="post" className="card">
-            <div className="grid">
-              <div>
-                <label>Name *</label>
-                <input name="name" required />
-              </div>
-              <div>
-                <label>Supplier *</label>
-                <select name="supplierId" required>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Unit</label>
-                <select name="unit" defaultValue="each">
-                  {PRODUCT_UNITS.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Category</label>
-                <input name="category" />
-              </div>
-              <div>
-                <label>Default wholesale ($)</label>
-                <input name="wholesale" placeholder="2.00" />
-              </div>
-              <div>
-                <label>Default retail ($)</label>
-                <input name="retail" placeholder="3.50" />
-              </div>
-            </div>
-            <label>Description</label>
-            <textarea name="description" rows={2} />
-            <div style={{ marginTop: "1rem" }}>
-              <button type="submit">Add product</button>
-            </div>
-          </Form>
-        )}
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">Admin</p>
+          <h1>Products</h1>
+          <p className="kp-st-head__meta">Produce items that can be listed in any ordering window.</p>
+        </div>
+      </div>
 
-        <table className="card">
+      {suppliers.length === 0 ? (
+        <div className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
+          <p className="kp-muted">Add an active supplier first.</p>
+        </div>
+      ) : (
+        <Form method="post" className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
+          <div className="kp-row">
+            <label className="kp-field">
+              <span className="kp-field__label">Name *</span>
+              <input className="kp-input" name="name" required />
+            </label>
+            <label className="kp-field">
+              <span className="kp-field__label">Supplier *</span>
+              <select className="kp-select" name="supplierId" required>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="kp-field">
+              <span className="kp-field__label">Unit</span>
+              <select className="kp-select" name="unit" defaultValue="each">
+                {PRODUCT_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="kp-field">
+              <span className="kp-field__label">Category</span>
+              <input className="kp-input" name="category" />
+            </label>
+            <label className="kp-field">
+              <span className="kp-field__label">Default wholesale ($)</span>
+              <input className="kp-input" name="wholesale" placeholder="2.00" />
+            </label>
+            <label className="kp-field">
+              <span className="kp-field__label">Default retail ($)</span>
+              <input className="kp-input" name="retail" placeholder="3.50" />
+            </label>
+          </div>
+          <label className="kp-field">
+            <span className="kp-field__label">Description</span>
+            <textarea className="kp-input" name="description" rows={2} />
+          </label>
+          <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+            Add product
+          </button>
+        </Form>
+      )}
+
+      <div className="kp-ledger-wrap">
+        <div className="kp-ledger-head">
+          <h3>All products</h3>
+        </div>
+        <table className="kp-ledger">
           <thead>
             <tr>
               <th>Product</th>
               <th>Supplier</th>
               <th>Unit</th>
-              <th>Wholesale</th>
-              <th>Retail</th>
+              <th className="num">Wholesale</th>
+              <th className="num">Retail</th>
             </tr>
           </thead>
           <tbody>
@@ -139,12 +152,13 @@ export default function Products({ loaderData }: Route.ComponentProps) {
                 <td>{p.name}</td>
                 <td>{p.supplierName}</td>
                 <td>{p.unit}</td>
-                <td>{formatCents(p.defaultWholesaleCents)}</td>
-                <td>{formatCents(p.defaultRetailCents)}</td>
+                <td className="num">{formatCents(p.defaultWholesaleCents)}</td>
+                <td className="num">{formatCents(p.defaultRetailCents)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </main>
+      </div>
+    </>
   );
 }

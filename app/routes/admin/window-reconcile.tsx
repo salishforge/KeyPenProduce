@@ -65,23 +65,30 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function WindowReconcile({ loaderData }: Route.ComponentProps) {
   const { window: win, lines } = loaderData;
   return (
-    <main className="container">
-        <p>
-          <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
-        </p>
-        <h1>Reconcile pickup — {win.label}</h1>
-        <p className="muted">
-          Enter the quantity actually received from wholesale. Shortfalls are
-          allocated first-come, first-served by reservation time; short orders
-          are refunded automatically when already paid online.
-        </p>
-        <Form method="post" className="card">
-          <table>
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">
+            <Link to={`/admin/windows/${win.id}`} className="kp-linkact">{win.label}</Link>
+          </p>
+          <h1>Reconcile pickup</h1>
+          <p className="kp-st-head__meta">
+            Enter quantities actually received. Shortfalls are allocated first-come, first-served.
+          </p>
+        </div>
+      </div>
+
+      <Form method="post">
+        <div className="kp-ledger-wrap" style={{ marginBottom: "1rem" }}>
+          <div className="kp-ledger-head">
+            <h3>Received quantities</h3>
+          </div>
+          <table className="kp-ledger">
             <thead>
               <tr>
                 <th>Product</th>
-                <th>Ordered</th>
-                <th>Received</th>
+                <th className="num">Ordered</th>
+                <th className="num">Received</th>
               </tr>
             </thead>
             <tbody>
@@ -90,24 +97,26 @@ export default function WindowReconcile({ loaderData }: Route.ComponentProps) {
                   <td>
                     {l.displayName} ({l.unit})
                   </td>
-                  <td>{l.quantityOrdered}</td>
-                  <td>
+                  <td className="num">{l.quantityOrdered}</td>
+                  <td className="num">
                     <input
+                      className="kp-input"
                       name={`recv_${l.productId}`}
                       type="number"
                       min={0}
                       defaultValue={l.quantityReceived ?? l.quantityOrdered}
-                      style={{ width: 90 }}
+                      style={{ width: "6rem" }}
                     />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ marginTop: "1rem" }}>
-            <button type="submit">Confirm received &amp; activate orders</button>
-          </div>
-        </Form>
-      </main>
+        </div>
+        <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+          Confirm received &amp; activate orders
+        </button>
+      </Form>
+    </>
   );
 }

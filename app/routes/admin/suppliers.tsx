@@ -53,34 +53,45 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Suppliers({ loaderData }: Route.ComponentProps) {
   const { suppliers } = loaderData;
   return (
-    <main className="container">
-        <h1>Suppliers</h1>
-        <Form method="post" className="card">
-          <input type="hidden" name="intent" value="create" />
-          <div className="grid">
-            <div>
-              <label>Name *</label>
-              <input name="name" required />
-            </div>
-            <div>
-              <label>Contact</label>
-              <input name="contactName" />
-            </div>
-            <div>
-              <label>Email</label>
-              <input name="email" type="email" />
-            </div>
-            <div>
-              <label>Phone</label>
-              <input name="phone" />
-            </div>
-          </div>
-          <div style={{ marginTop: "1rem" }}>
-            <button type="submit">Add supplier</button>
-          </div>
-        </Form>
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">Admin</p>
+          <h1>Suppliers</h1>
+          <p className="kp-st-head__meta">Manage the growers and vendors Key Pen sources from.</p>
+        </div>
+      </div>
 
-        <table className="card">
+      <Form method="post" className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
+        <input type="hidden" name="intent" value="create" />
+        <div className="kp-row">
+          <label className="kp-field">
+            <span className="kp-field__label">Name *</span>
+            <input className="kp-input" name="name" required />
+          </label>
+          <label className="kp-field">
+            <span className="kp-field__label">Contact</span>
+            <input className="kp-input" name="contactName" />
+          </label>
+          <label className="kp-field">
+            <span className="kp-field__label">Email</span>
+            <input className="kp-input" name="email" type="email" />
+          </label>
+          <label className="kp-field">
+            <span className="kp-field__label">Phone</span>
+            <input className="kp-input" name="phone" />
+          </label>
+        </div>
+        <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+          Add supplier
+        </button>
+      </Form>
+
+      <div className="kp-ledger-wrap">
+        <div className="kp-ledger-head">
+          <h3>All suppliers</h3>
+        </div>
+        <table className="kp-ledger">
           <thead>
             <tr>
               <th>Name</th>
@@ -98,7 +109,7 @@ export default function Suppliers({ loaderData }: Route.ComponentProps) {
                   {s.email ? ` · ${s.email}` : ""}
                 </td>
                 <td>
-                  <span className="badge">
+                  <span className={s.isActive ? "kp-badge kp-badge--ok" : "kp-badge kp-badge--out"}>
                     {s.isActive ? "active" : "inactive"}
                   </span>
                 </td>
@@ -111,7 +122,7 @@ export default function Suppliers({ loaderData }: Route.ComponentProps) {
                       name="active"
                       value={String(s.isActive)}
                     />
-                    <button className="secondary" type="submit">
+                    <button className="kp-btn kp-btn--danger kp-btn--sm" type="submit">
                       {s.isActive ? "Deactivate" : "Activate"}
                     </button>
                   </Form>
@@ -120,6 +131,7 @@ export default function Suppliers({ loaderData }: Route.ComponentProps) {
             ))}
           </tbody>
         </table>
-      </main>
+      </div>
+    </>
   );
 }
