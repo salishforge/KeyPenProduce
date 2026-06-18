@@ -1,0 +1,184 @@
+/* ===========================================================================
+   Storefront layout — the weekly marketplace at /shop.
+   Consumes tokens + primitives from theme.css. Import after theme.css.
+   =========================================================================== */
+
+/* Header -------------------------------------------------------------------- */
+.kp-shop-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--kp-rule);
+  flex-wrap: wrap;
+}
+.kp-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--kp-font-display);
+  font-weight: 700;
+  font-size: 1.18rem;
+  letter-spacing: -0.01em;
+  color: var(--kp-ink);
+  text-decoration: none;
+}
+.kp-wordmark svg { flex: none; }
+.kp-shop-nav { display: flex; align-items: center; gap: 1.3rem; font-size: 0.9rem; }
+.kp-shop-nav a { text-decoration: none; color: var(--kp-ink-soft); font-weight: 500; }
+.kp-shop-nav a:hover { color: var(--kp-tide); }
+.kp-cart-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--kp-tide-soft);
+  color: var(--kp-tide);
+  border-radius: 999px;
+  padding: 0.34rem 0.8rem;
+  font-weight: 600;
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+
+/* Hero ---------------------------------------------------------------------- */
+.kp-hero { padding: clamp(1.4rem, 4vw, 2.4rem) clamp(1rem, 4vw, 2.5rem) 0; }
+.kp-hero__week {
+  font-family: var(--kp-font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 6vw, 3.1rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin: 0.4rem 0 0.2rem;
+}
+.kp-hero__note {
+  font-family: var(--kp-font-accent);
+  font-style: italic;
+  font-size: clamp(1.02rem, 2.4vw, 1.22rem);
+  color: var(--kp-ink-soft);
+  max-width: 34rem;
+}
+.kp-status-strip {
+  display: flex;
+  gap: 0.6rem 1.6rem;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--kp-radius);
+  background: var(--kp-note-bg);
+  border: 1px solid #b8cdc5;
+}
+.kp-status-strip div { display: flex; flex-direction: column; gap: 0.1rem; }
+.kp-status-strip .k {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kp-tide-soft);
+}
+.kp-status-strip .v { font-weight: 600; font-size: 0.95rem; }
+.kp-status-strip .v b { color: var(--kp-tide); }
+
+/* Main grid ----------------------------------------------------------------- */
+.kp-shop-main {
+  display: grid;
+  grid-template-columns: 1fr 19rem;
+  gap: 2rem;
+  padding: 1.8rem clamp(1rem, 4vw, 2.5rem) 3rem;
+  align-items: start;
+}
+.kp-board-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+.kp-board-head h2 { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
+.kp-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+/* Listing card -------------------------------------------------------------- */
+.kp-listing {
+  display: flex;
+  flex-direction: column;
+  background: var(--kp-paper-raised);
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius);
+  padding: 1rem;
+}
+.kp-listing--out { opacity: 0.62; }
+.kp-listing__top { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
+.kp-listing__name { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.12rem; line-height: 1.1; }
+.kp-listing__bot { font-family: var(--kp-font-accent); font-style: italic; font-size: 0.86rem; color: var(--kp-ink-soft); margin-top: 0.1rem; }
+.kp-listing__price { margin-top: 0.65rem; font-size: 1.02rem; }
+.kp-listing__price b { font-weight: 700; }
+.kp-listing__price span { color: var(--kp-ink-soft); font-size: 0.85rem; }
+.kp-listing__stock { margin-top: 0.2rem; font-size: 0.82rem; font-weight: 600; color: var(--kp-tide-soft); }
+.kp-listing__stock--low { color: var(--kp-honey); }
+.kp-listing__stock--out { color: var(--kp-ink-soft); }
+.kp-listing__keep { margin-top: 0.55rem; }
+.kp-listing__keep a {
+  font-size: 0.8rem;
+  color: var(--kp-tide);
+  text-decoration: none;
+  border-bottom: 1px solid var(--kp-rule);
+  font-weight: 600;
+}
+.kp-listing__keep a:hover { border-bottom-color: var(--kp-tide); }
+.kp-listing__act {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--kp-rule);
+}
+.kp-listing__gone { font-family: var(--kp-font-accent); font-style: italic; font-size: 0.82rem; color: var(--kp-ink-soft); }
+
+/* Basket -------------------------------------------------------------------- */
+.kp-basket {
+  position: sticky;
+  top: 4rem;
+  background: var(--kp-paper-raised);
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius);
+  padding: 1.1rem;
+}
+.kp-basket h3 { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.05rem; margin: 0 0 0.7rem; }
+.kp-basket__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--kp-rule-soft);
+}
+.kp-basket__line span { color: var(--kp-ink-soft); }
+.kp-basket__empty { font-size: 0.86rem; color: var(--kp-ink-soft); padding: 0.4rem 0 0.8rem; }
+.kp-basket__sum { display: flex; justify-content: space-between; font-weight: 700; margin: 0.7rem 0 0.9rem; }
+.kp-basket .kp-btn { width: 100%; justify-content: center; margin-bottom: 0.5rem; }
+.kp-basket__re { font-size: 0.78rem; color: var(--kp-ink-soft); margin-top: 0.4rem; display: flex; gap: 0.4rem; align-items: flex-start; }
+.kp-basket__re svg { flex: none; margin-top: 1px; }
+
+/* Rhythm explainer ---------------------------------------------------------- */
+.kp-rhythm {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 3rem;
+}
+.kp-rhythm__step { border-top: 2px solid var(--kp-tide); padding-top: 0.7rem; }
+.kp-rhythm__n { font-family: var(--kp-font-display); font-weight: 700; color: var(--kp-tide-soft); font-size: 0.9rem; }
+.kp-rhythm__t { font-weight: 600; margin: 0.1rem 0 0.2rem; }
+.kp-rhythm__d { font-size: 0.85rem; color: var(--kp-ink-soft); }
+
+/* Responsive ---------------------------------------------------------------- */
+@media (max-width: 60rem) {
+  .kp-shop-main { grid-template-columns: 1fr; }
+  .kp-basket { position: static; }
+}
+@media (max-width: 40rem) {
+  .kp-board { grid-template-columns: 1fr; }
+  .kp-rhythm { grid-template-columns: 1fr; }
+}
