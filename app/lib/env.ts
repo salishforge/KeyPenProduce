@@ -9,6 +9,8 @@ export interface AppEnv {
   DB: D1Database;
   PRODUCT_IMAGES: R2Bucket;
   CONFIG_KV: KVNamespace;
+  AI: Ai;
+  PRODUCT_ADMIN_AGENT: DurableObjectNamespace;
 
   // Vars
   APP_URL: string;

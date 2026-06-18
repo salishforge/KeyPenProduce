@@ -77,7 +77,7 @@ export default function WindowReservations({ loaderData }: Route.ComponentProps)
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
       <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>

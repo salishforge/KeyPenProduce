@@ -15,7 +15,9 @@ export function TopNav({ user }: { user: NavUser | null }) {
         </Link>
         {user?.role === "client" && <Link to="/shop">Shop</Link>}
         {user && <Link to="/orders">My Orders</Link>}
-        {user?.role === "admin" && <Link to="/admin">Admin</Link>}
+        {(user?.role === "admin" || user?.role === "product_admin") && (
+          <Link to="/admin">Admin</Link>
+        )}
         {(user?.role === "fulfillment" || user?.role === "admin") && (
           <Link to="/desk">Pickup Desk</Link>
         )}

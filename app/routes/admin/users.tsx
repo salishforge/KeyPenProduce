@@ -81,7 +81,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <TopNav user={user} />
-      <AdminNav />
+      <AdminNav role={user.role} />
       <main className="container">
         <h1>Users &amp; roles</h1>
         <table className="card">

@@ -5,6 +5,15 @@ import { getDb } from "~/db/client";
 import { getActiveWindow, getStorefrontListings } from "~/services/listings";
 import { addToCart, readCart, serializeCart, cartCount } from "~/services/cart.server";
 import { TopNav } from "~/components/nav";
+import {
+  Container,
+  PageHeader,
+  Card,
+  Button,
+  LinkButton,
+  Input,
+  Badge,
+} from "~/components/ui";
 import { formatCents } from "~/lib/money";
 import { formatInZone } from "~/lib/time";
 
@@ -52,74 +61,77 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Shop({ loaderData }: Route.ComponentProps) {
   const { user, window, listings, cartCount } = loaderData;
   return (
-    <>
+    <div className="min-h-screen bg-canvas text-ink">
       <TopNav user={user} />
-      <main className="container">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h1>This week's produce</h1>
-          <Link to="/cart" className="btn">
-            Cart ({cartCount})
-          </Link>
-        </div>
+      <Container>
+        <PageHeader
+          title="This week's produce"
+          subtitle={
+            window
+              ? `${window.label} · order by ${formatInZone(new Date(window.closesAt))}`
+              : undefined
+          }
+          actions={
+            <LinkButton to="/cart" variant={cartCount ? "primary" : "secondary"}>
+              Cart ({cartCount})
+            </LinkButton>
+          }
+        />
 
         {!window ? (
-          <div className="card">
-            <p>
+          <Card>
+            <p className="text-muted">
               Ordering isn't open right now. Check back soon for the next week's
               produce.
             </p>
-          </div>
+          </Card>
+        ) : listings.length === 0 ? (
+          <Card>
+            <p className="text-muted">No produce is available to reserve right now.</p>
+          </Card>
         ) : (
-          <>
-            <div className="card">
-              <strong>{window.label}</strong>
-              <div className="muted">
-                Order by {formatInZone(new Date(window.closesAt))} · Pickup{" "}
-                {formatInZone(new Date(window.pickupDate), undefined, {
-                  dateStyle: "medium",
-                })}
-              </div>
-            </div>
-
-            {listings.length === 0 ? (
-              <div className="card">
-                <p>No produce is available to reserve right now.</p>
-              </div>
-            ) : (
-              <div className="grid">
-                {listings.map((l) => (
-                  <div className="card" key={l.id}>
-                    <Link to={`/shop/product/${l.id}`}>
-                      <strong>{l.displayName}</strong>
-                    </Link>
-                    <div className="muted">
-                      {formatCents(l.priceCents)} / {l.unit}
-                    </div>
-                    <div className="muted">{l.quantityRemaining} available</div>
-                    {l.orderable ? (
-                      <Form method="post" className="row" style={{ marginTop: ".5rem" }}>
-                        <input type="hidden" name="windowId" value={window.id} />
-                        <input type="hidden" name="listingId" value={l.id} />
-                        <input
-                          type="number"
-                          name="quantity"
-                          defaultValue={1}
-                          min={1}
-                          max={l.quantityRemaining}
-                          style={{ width: 70 }}
-                        />
-                        <button type="submit">Reserve</button>
-                      </Form>
-                    ) : (
-                      <span className="badge">Ordering closed</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {listings.map((l) => (
+              <Card key={l.id} className="flex flex-col">
+                <Link
+                  to={`/shop/product/${l.id}`}
+                  className="text-lg font-semibold text-ink hover:text-brand-dark"
+                >
+                  {l.displayName}
+                </Link>
+                <div className="mt-1 text-sm text-muted">
+                  <span className="font-medium text-ink">
+                    {formatCents(l.priceCents)}
+                  </span>{" "}
+                  / {l.unit}
+                </div>
+                <div className="mt-0.5 text-sm text-muted">
+                  {l.quantityRemaining} available
+                </div>
+                <div className="mt-auto pt-4">
+                  {l.orderable ? (
+                    <Form method="post" className="flex items-center gap-2">
+                      <input type="hidden" name="windowId" value={window.id} />
+                      <input type="hidden" name="listingId" value={l.id} />
+                      <Input
+                        type="number"
+                        name="quantity"
+                        defaultValue={1}
+                        min={1}
+                        max={l.quantityRemaining}
+                        className="w-20"
+                      />
+                      <Button type="submit">Reserve</Button>
+                    </Form>
+                  ) : (
+                    <Badge tone="warning">Ordering closed</Badge>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
-      </main>
-    </>
+      </Container>
+    </div>
   );
 }
