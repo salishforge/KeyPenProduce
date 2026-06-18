@@ -6,8 +6,6 @@ import { getDb } from "~/db/client";
 import { products, suppliers, PRODUCT_UNITS } from "~/db/schema";
 import { newId, slugify } from "~/lib/ids";
 import { parseDollarsToCents, formatCents } from "~/lib/money";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -69,12 +67,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Products({ loaderData }: Route.ComponentProps) {
-  const { user, products, suppliers } = loaderData;
+  const { products, suppliers } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <h1>Products</h1>
         {suppliers.length === 0 ? (
           <div className="card">
@@ -151,6 +146,5 @@ export default function Products({ loaderData }: Route.ComponentProps) {
           </tbody>
         </table>
       </main>
-    </>
   );
 }

@@ -5,8 +5,6 @@ import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { orderingWindows } from "~/db/schema";
 import { newId } from "~/lib/ids";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatInZone } from "~/lib/time";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -52,12 +50,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Windows({ loaderData }: Route.ComponentProps) {
-  const { user, windows } = loaderData;
+  const { windows } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <h1>Ordering windows</h1>
         <Form method="post" className="card">
           <div className="grid">
@@ -114,6 +109,5 @@ export default function Windows({ loaderData }: Route.ComponentProps) {
           </tbody>
         </table>
       </main>
-    </>
   );
 }

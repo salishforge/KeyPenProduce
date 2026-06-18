@@ -6,8 +6,6 @@ import { getDb } from "~/db/client";
 import { listings, products, orderingWindows } from "~/db/schema";
 import { newId } from "~/lib/ids";
 import { parseDollarsToCents, formatCents } from "~/lib/money";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -89,12 +87,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowListings({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, listings, available } = loaderData;
+  const { window: win, listings, available } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
         </p>
@@ -186,6 +181,5 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
           </tbody>
         </table>
       </main>
-    </>
   );
 }

@@ -12,7 +12,6 @@ import { redirect } from "react-router";
 import { inArray } from "drizzle-orm";
 
 import { requireUser } from "~/auth/session.server";
-import type { AppEnv } from "~/lib/env";
 import { getDb } from "~/db/client";
 import { listings as listingsTable, products } from "~/db/schema";
 import { getActiveWindow, getStorefrontListings } from "~/services/listings";
@@ -20,6 +19,11 @@ import { readCart, addToCart, serializeCart, cartCount } from "~/services/cart.s
 import { formatCents } from "~/lib/money";
 import { formatInZone, APP_TIMEZONE } from "~/lib/time";
 import { CROPS } from "~/lib/preservation/preservation-data";
+import {
+  readStoreConfig,
+  pickupWindowLabel,
+  payLabel as configPayLabel,
+} from "~/lib/store-config";
 import type {
   ShopData,
   ListingView,
@@ -44,33 +48,8 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-/**
- * Storefront display copy not derivable from the window row. Read from CONFIG_KV
- * (set on /admin/settings) with sane fallbacks, so an admin's edits surface here
- * without a code change. The per-week `note` has no home in the schema yet, so
- * it falls back to a generic line.
- */
-interface StoreCopy {
-  pickupLocation: string;
-  pickupWindow: string;
-  payLabel: string;
-  weekNote: string;
-}
-
-const STORE_COPY_FALLBACK: StoreCopy = {
-  pickupLocation: "Key Center barn",
-  pickupWindow: "9:00–noon",
-  payLabel: "Online now, or cash at pickup",
-  weekNote:
-    "This week's drop from the Key Peninsula. Reserve what you'd like and pick it up Saturday.",
-};
-
-async function readStoreCopy(env: AppEnv): Promise<StoreCopy> {
-  const cfg = (await env.CONFIG_KV.get("store-config", "json")) as
-    | Partial<StoreCopy>
-    | null;
-  return { ...STORE_COPY_FALLBACK, ...(cfg ?? {}) };
-}
+const WEEK_NOTE_DEFAULT =
+  "This week's drop from the Key Peninsula. Reserve what you'd like and pick it up Saturday.";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -78,7 +57,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const db = getDb(env.DB);
 
   const cart = await readCart(request);
-  const copy = await readStoreCopy(env);
+  const config = await readStoreConfig(env);
+  const pickupLabel = `${pickupWindowLabel(config)} · ${config.pickupLocation}`;
+  const payLabelText = configPayLabel(config);
+  const weekNote = WEEK_NOTE_DEFAULT;
   const window = await getActiveWindow(db);
 
   // Basket lines join the cart cookie back to listing rows (the cookie holds
@@ -123,8 +105,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         weekLabel: "No open window",
         note: "Ordering isn't open right now — check back soon for next week's produce.",
         ordering: { state: "closed", detail: "closed" },
-        pickupLabel: `${copy.pickupWindow} · ${copy.pickupLocation}`,
-        payLabel: copy.payLabel,
+        pickupLabel,
+        payLabel: payLabelText,
         boardSummary: "Nothing on the board this week",
       },
       listings: [],
@@ -185,7 +167,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const shop: ShopData = {
     week: {
       weekLabel: window.label,
-      note: copy.weekNote,
+      note: weekNote,
       ordering: {
         state: orderingState,
         detail: `closes ${formatInZone(window.closesAt, APP_TIMEZONE, {
@@ -194,10 +176,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           minute: "2-digit",
         })}`,
       },
-      pickupLabel: `${formatInZone(window.pickupDate, APP_TIMEZONE, {
-        weekday: "short",
-      })} ${copy.pickupWindow} · ${copy.pickupLocation}`,
-      payLabel: copy.payLabel,
+      pickupLabel,
+      payLabel: payLabelText,
       boardSummary: `${listings.length} listings · ${sellingOut} selling out`,
     },
     listings,

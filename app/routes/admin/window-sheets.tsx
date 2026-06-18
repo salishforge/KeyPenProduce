@@ -9,8 +9,6 @@ import {
   supplierPickupSheets,
   pickupSheetLines,
 } from "~/db/schema";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatCents } from "~/lib/money";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -62,12 +60,9 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 }
 
 export default function WindowSheets({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, sheets } = loaderData;
+  const { window: win, sheets } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
         </p>
@@ -122,6 +117,5 @@ export default function WindowSheets({ loaderData }: Route.ComponentProps) {
           ))
         )}
       </main>
-    </>
   );
 }

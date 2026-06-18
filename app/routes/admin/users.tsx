@@ -10,8 +10,6 @@ import {
   USER_ROLES,
 } from "~/db/schema";
 import { newId } from "~/lib/ids";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -77,12 +75,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Users({ loaderData }: Route.ComponentProps) {
-  const { user, users, windows } = loaderData;
+  const { users, windows } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <h1>Users &amp; roles</h1>
         <table className="card">
           <thead>
@@ -137,6 +132,5 @@ export default function Users({ loaderData }: Route.ComponentProps) {
           </tbody>
         </table>
       </main>
-    </>
   );
 }

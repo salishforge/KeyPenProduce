@@ -5,8 +5,6 @@ import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { suppliers } from "~/db/schema";
 import { newId } from "~/lib/ids";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -53,12 +51,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Suppliers({ loaderData }: Route.ComponentProps) {
-  const { user, suppliers } = loaderData;
+  const { suppliers } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <h1>Suppliers</h1>
         <Form method="post" className="card">
           <input type="hidden" name="intent" value="create" />
@@ -126,6 +121,5 @@ export default function Suppliers({ loaderData }: Route.ComponentProps) {
           </tbody>
         </table>
       </main>
-    </>
   );
 }

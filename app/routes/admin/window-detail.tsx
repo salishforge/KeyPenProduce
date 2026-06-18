@@ -6,8 +6,6 @@ import { getDb } from "~/db/client";
 import { orderingWindows, orders, listings } from "~/db/schema";
 import { commitWindow } from "~/services/commit";
 import { generateSupplierSheets } from "~/services/reconcile";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatInZone } from "~/lib/time";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -93,12 +91,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowDetail({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, listingCount, placedOrders } = loaderData;
+  const { window: win, listingCount, placedOrders } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <p>
           <Link to="/admin/windows">← Windows</Link>
         </p>
@@ -178,6 +173,5 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
       </main>
-    </>
   );
 }

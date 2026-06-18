@@ -3,8 +3,6 @@ import type { Route } from "./+types/finance";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { getFinanceSummary } from "~/services/ledger";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatCents } from "~/lib/money";
 
 export function meta() {
@@ -20,16 +18,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function Finance({ loaderData }: Route.ComponentProps) {
-  const { user, summary } = loaderData;
+  const { summary } = loaderData;
   const marginPct =
     summary.saleRevenueCents > 0
       ? ((summary.grossMarginCents / summary.saleRevenueCents) * 100).toFixed(1)
       : "0.0";
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h1>Finance</h1>
           <Link to="/admin/finance/export.csv" className="btn" reloadDocument>
@@ -53,7 +48,6 @@ export default function Finance({ loaderData }: Route.ComponentProps) {
           collected in this version.
         </p>
       </main>
-    </>
   );
 }
 

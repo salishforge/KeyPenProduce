@@ -9,8 +9,6 @@ import {
   pickupSheetLines,
 } from "~/db/schema";
 import { reconcileWindow, type ReceivedInput } from "~/services/reconcile";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -65,12 +63,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowReconcile({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, lines } = loaderData;
+  const { window: win, lines } = loaderData;
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
         </p>
@@ -114,6 +109,5 @@ export default function WindowReconcile({ loaderData }: Route.ComponentProps) {
           </div>
         </Form>
       </main>
-    </>
   );
 }

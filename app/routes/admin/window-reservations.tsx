@@ -11,8 +11,6 @@ import {
 } from "~/db/schema";
 import { commitWindow } from "~/services/commit";
 import { generateSupplierSheets } from "~/services/reconcile";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatCents } from "~/lib/money";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -72,13 +70,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowReservations({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, demand, orders } = loaderData;
+  const { window: win, demand, orders } = loaderData;
   const canCommit = win.status === "open" || win.status === "closed";
   return (
-    <>
-      <TopNav user={user} />
-      <AdminNav />
-      <main className="container">
+    <main className="container">
         <p>
           <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
         </p>
@@ -142,6 +137,5 @@ export default function WindowReservations({ loaderData }: Route.ComponentProps)
           </Form>
         )}
       </main>
-    </>
   );
 }
