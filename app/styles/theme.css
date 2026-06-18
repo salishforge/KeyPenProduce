@@ -83,6 +83,12 @@ body {
   font-style: italic;
   color: var(--kp-ink-soft);
 }
+.kp-muted { color: var(--kp-ink-soft); }
+.kp-error {
+  color: var(--kp-tomato);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
 
 /* Buttons ------------------------------------------------------------------- */
 .kp-btn {

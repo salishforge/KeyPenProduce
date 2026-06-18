@@ -50,16 +50,7 @@ export function ListingCard({ listing }: { listing: ListingView }) {
 
       <div className="kp-listing__act">
         {listing.soldOut ? (
-          <>
-            <span className="kp-listing__gone">Gone for the week</span>
-            <Form method="post">
-              <input type="hidden" name="intent" value="notify" />
-              <input type="hidden" name="listingId" value={listing.id} />
-              <button type="submit" className="kp-btn kp-btn--ghost kp-btn--sm">
-                Notify me
-              </button>
-            </Form>
-          </>
+          <span className="kp-listing__gone">Gone for the week</span>
         ) : (
           <Form method="post" className="kp-listing__reserve">
             <input type="hidden" name="intent" value="add" />

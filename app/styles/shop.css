@@ -182,3 +182,42 @@
   .kp-board { grid-template-columns: 1fr; }
   .kp-rhythm { grid-template-columns: 1fr; }
 }
+
+/* Cart — review + reserve --------------------------------------------------- */
+.kp-cart {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.8rem clamp(1rem, 4vw, 2.5rem) 3rem;
+}
+.kp-cart h1 {
+  font-family: var(--kp-font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0 0 1.2rem;
+}
+.kp-cart__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--kp-rule-soft);
+}
+.kp-cart__info { flex: 1 1 12rem; }
+.kp-cart__name { font-weight: 600; }
+.kp-cart__qty { display: flex; align-items: center; gap: 0.4rem; }
+.kp-input--qty { width: 4rem; }
+.kp-cart__amt { font-weight: 700; min-width: 4.5rem; text-align: right; }
+.kp-cart__sum {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1rem 0 0.2rem;
+  font-family: var(--kp-font-display);
+}
+.kp-cart__sum b { font-size: 1.25rem; }
+.kp-cart__fineprint {
+  font-size: 0.85rem;
+  color: var(--kp-ink-soft);
+  margin: 0.4rem 0 0.9rem;
+}
