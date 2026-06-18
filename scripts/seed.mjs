@@ -24,14 +24,16 @@ const pickupDate = now + 6 * day;
 const sb = "seed_supplier_1";
 const win = "seed_window_1";
 
-// [productId, name, slug, unit, category, wholesaleCents, retailCents, qty]
+// [productId, name, slug, unit, category, wholesaleCents, retailCents, qty, preservationSlug]
+// preservationSlug links to a crop in app/lib/preservation/preservation-data.ts
+// (CROPS keys); null when no guide exists for that product.
 const products = [
-  ["seed_p_tomato", "Heirloom Tomatoes", "heirloom-tomatoes", "lb", "Vegetables", 200, 350, 40],
-  ["seed_p_carrot", "Rainbow Carrots", "rainbow-carrots", "bunch", "Vegetables", 150, 300, 30],
-  ["seed_p_kale", "Lacinato Kale", "lacinato-kale", "bunch", "Greens", 120, 275, 25],
-  ["seed_p_apple", "Honeycrisp Apples", "honeycrisp-apples", "lb", "Fruit", 180, 325, 50],
-  ["seed_p_cuke", "Pickling Cucumbers", "pickling-cucumbers", "lb", "Vegetables", 140, 290, 35],
-  ["seed_p_eggs", "Free-Range Eggs", "free-range-eggs", "each", "Dairy & Eggs", 350, 650, 60],
+  ["seed_p_tomato", "Heirloom Tomatoes", "heirloom-tomatoes", "lb", "Vegetables", 200, 350, 40, "tomatoes"],
+  ["seed_p_carrot", "Rainbow Carrots", "rainbow-carrots", "bunch", "Vegetables", 150, 300, 30, null],
+  ["seed_p_kale", "Lacinato Kale", "lacinato-kale", "bunch", "Greens", 120, 275, 25, "leafy-greens"],
+  ["seed_p_apple", "Honeycrisp Apples", "honeycrisp-apples", "lb", "Fruit", 180, 325, 50, null],
+  ["seed_p_cuke", "Pickling Cucumbers", "pickling-cucumbers", "lb", "Vegetables", 140, 290, 35, "cucumbers"],
+  ["seed_p_eggs", "Free-Range Eggs", "free-range-eggs", "each", "Dairy & Eggs", 350, 650, 60, null],
 ];
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
@@ -41,9 +43,9 @@ lines.push(
   `INSERT OR REPLACE INTO suppliers (id,name,contactName,email,phone,notes,isActive,createdAt,updatedAt) VALUES (${q(sb)},${q("Salish Roots Farm")},${q("Pat Olsen")},${q("pat@salishroots.example")},${q("253-555-0142")},NULL,1,${now},${now});`,
 );
 
-for (const [id, name, slug, unit, cat, wc, rc] of products) {
+for (const [id, name, slug, unit, cat, wc, rc, , presSlug] of products) {
   lines.push(
-    `INSERT OR REPLACE INTO products (id,supplierId,name,slug,description,category,unit,imageKey,defaultWholesaleCents,defaultRetailCents,isActive,createdAt,updatedAt) VALUES (${q(id)},${q(sb)},${q(name)},${q(slug)},${q("Fresh from the Key Peninsula.")},${q(cat)},${q(unit)},NULL,${wc},${rc},1,${now},${now});`,
+    `INSERT OR REPLACE INTO products (id,supplierId,name,slug,description,category,preservationSlug,unit,imageKey,defaultWholesaleCents,defaultRetailCents,isActive,createdAt,updatedAt) VALUES (${q(id)},${q(sb)},${q(name)},${q(slug)},${q("Fresh from the Key Peninsula.")},${q(cat)},${presSlug ? q(presSlug) : "NULL"},${q(unit)},NULL,${wc},${rc},1,${now},${now});`,
   );
 }
 

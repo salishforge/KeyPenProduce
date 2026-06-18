@@ -19,6 +19,7 @@ export default [
   // Customer storefront
   route("shop", "routes/shop/index.tsx"),
   route("shop/product/:listingId", "routes/shop/product.tsx"),
+  route("shop/keep/:slug", "routes/shop/keep.tsx"),
   route("cart", "routes/shop/cart.tsx"),
   route("orders", "routes/orders/index.tsx"),
   route("orders/:orderId", "routes/orders/detail.tsx"),
