@@ -9,12 +9,8 @@ import {
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 
-// Stylesheet order is load-bearing. app.css holds the legacy utility classes
-// (.card/.btn/.grid) that un-migrated screens still use; it loads FIRST so the
-// kp- design system below wins the base-level overlaps (body background, font,
-// color). theme.css MUST precede shop/admin/preservation — they consume its
-// --kp-* tokens. app.css is removed once every screen is migrated.
-import "./app.css";
+// Stylesheet order is load-bearing: theme.css MUST precede shop/admin/
+// preservation — they consume its --kp-* tokens.
 import "~/styles/theme.css";
 import "~/styles/shop.css";
 import "~/styles/admin.css";
@@ -73,11 +69,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     details = error.message;
   }
   return (
-    <main className="container">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="kp-auth">
+      <h1 className="kp-auth__heading">{message}</h1>
+      <p className="kp-muted">{details}</p>
       <p>
-        <a href="/">Return home</a>
+        <a href="/" className="kp-btn kp-btn--outline kp-btn--sm">
+          Return home
+        </a>
       </p>
     </main>
   );
