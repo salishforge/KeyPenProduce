@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "keypenproduce-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "e0d75187-2d2d-4676-9c2c-bab55b8e2f3e",
       "migrations_dir": "drizzle/migrations"
     }
   ],
@@ -28,7 +28,7 @@
   "kv_namespaces": [
     {
       "binding": "CONFIG_KV",
-      "id": "00000000000000000000000000000000"
+      "id": "50bb32726ff5442196a8596b52448969"
     }
   ],
   "ai": {
