@@ -516,6 +516,34 @@ export default function AdminThisWeek({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
+      <a
+        href="/admin/assistant"
+        className="kp-card"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+          padding: "1rem 1.2rem",
+          marginBottom: "1.4rem",
+          textDecoration: "none",
+          color: "inherit",
+        }}
+      >
+        <span>
+          <span className="kp-eyebrow" style={{ display: "block" }}>
+            Catalog assistant
+          </span>
+          <span className="kp-muted">
+            Add products, set availability, or import a spreadsheet just by
+            chatting.
+          </span>
+        </span>
+        <span className="kp-btn kp-btn--primary kp-btn--sm">
+          Open assistant →
+        </span>
+      </a>
+
       <WindowLifecycle current={window.stage} />
 
       <SummaryTiles tiles={window.tiles} />

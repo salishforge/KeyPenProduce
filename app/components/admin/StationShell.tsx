@@ -24,6 +24,7 @@ const PRIMARY: NavItem[] = [
   { to: "/admin/windows", label: "Windows" },
   { to: "/admin/products", label: "Products" },
   { to: "/admin/suppliers", label: "Suppliers" },
+  { to: "/admin/assistant", label: "Assistant" },
 ];
 
 const RECORDS: NavItem[] = [
