@@ -12,8 +12,15 @@
     {
       "idx": 1,
       "version": "6",
-      "when": 1781764104520,
-      "tag": "0001_charming_monster_badoon",
+      "when": 1781581144976,
+      "tag": "0001_catalog_undo_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782166196086,
+      "tag": "0002_new_annihilus",
       "breakpoints": true
     }
   ]

@@ -64,6 +64,7 @@ export async function requireRole(
 export function landingPathForRole(role: UserRole): string {
   switch (role) {
     case "admin":
+    case "product_admin":
       return "/admin";
     case "fulfillment":
       return "/desk";

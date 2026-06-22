@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   plugins: [
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
+    // remoteBindings: false so `npm run dev` boots without a Cloudflare login.
+    // Workers AI (env.AI) is remote-only and otherwise forces a login-gated
+    // proxy at startup; with this off, the storefront/admin run locally and the
+    // assistant's model calls simply no-op in dev (handled gracefully).
+    cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
     reactRouter(),
     tsconfigPaths(),
   ],

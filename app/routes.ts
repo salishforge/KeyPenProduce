@@ -35,6 +35,7 @@ export default [
     route("windows/:windowId/reservations", "routes/admin/window-reservations.tsx"),
     route("windows/:windowId/sheets", "routes/admin/window-sheets.tsx"),
     route("windows/:windowId/reconcile", "routes/admin/window-reconcile.tsx"),
+    route("assistant", "routes/admin/assistant.tsx"),
     route("finance", "routes/admin/finance.tsx"),
     route("finance/export.csv", "routes/admin/finance-export.tsx"),
     route("users", "routes/admin/users.tsx"),
@@ -48,5 +49,6 @@ export default [
   // Resource routes
   route("api/stripe/webhook", "routes/api/stripe-webhook.tsx"),
   route("api/images/upload", "routes/api/image-upload.tsx"),
+  route("api/catalog-import", "routes/api/catalog-import.tsx"),
   route("img/*", "routes/img.tsx"),
 ] satisfies RouteConfig;

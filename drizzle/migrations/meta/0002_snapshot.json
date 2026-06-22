@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "247ed79d-f7f9-4ee3-b1aa-4b580e28aab1",
-  "prevId": "d0365fe8-01b3-41b4-b65d-4c841aadc9bd",
+  "id": "a1fbffe2-2419-4745-ac62-cb16ce4c8120",
+  "prevId": "247ed79d-f7f9-4ee3-b1aa-4b580e28aab1",
   "tables": {
     "account": {
       "name": "account",
@@ -419,6 +419,13 @@
         },
         "category": {
           "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "preservationSlug": {
+          "name": "preservationSlug",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -9,7 +9,12 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
  * better-auth config — they live on the same row.
  */
 
-export const USER_ROLES = ["client", "fulfillment", "admin"] as const;
+export const USER_ROLES = [
+  "client",
+  "fulfillment",
+  "admin",
+  "product_admin",
+] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const user = sqliteTable(
