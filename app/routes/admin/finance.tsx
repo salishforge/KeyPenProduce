@@ -3,9 +3,9 @@ import type { Route } from "./+types/finance";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { getFinanceSummary } from "~/services/ledger";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatCents } from "~/lib/money";
+import { SummaryTiles } from "~/components/admin/SummaryTiles";
+import type { SummaryTile } from "~/lib/admin/view-models";
 
 export function meta() {
   return [{ title: "Finance · Key Pen Produce" }];
@@ -20,48 +20,48 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function Finance({ loaderData }: Route.ComponentProps) {
-  const { user, summary } = loaderData;
+  const { summary } = loaderData;
   const marginPct =
     summary.saleRevenueCents > 0
       ? ((summary.grossMarginCents / summary.saleRevenueCents) * 100).toFixed(1)
       : "0.0";
+
+  const tiles: SummaryTile[] = [
+    { label: "Sales revenue", value: formatCents(summary.saleRevenueCents) },
+    { label: "Wholesale cost (COGS)", value: formatCents(summary.wholesaleCostCents) },
+    { label: "Gross margin", value: formatCents(summary.grossMarginCents), sub: `(${marginPct}%)` },
+    { label: "Card — online", value: formatCents(summary.cardOnlineCents) },
+    { label: "Card — in person", value: formatCents(summary.cardInPersonCents) },
+    { label: "Cash", value: formatCents(summary.cashCents) },
+    { label: "Stripe fees", value: formatCents(summary.stripeFeesCents) },
+    { label: "Refunds issued", value: formatCents(summary.refundsCents) },
+    { label: "Net cash collected", value: formatCents(summary.netCashCollectedCents) },
+  ];
+
   return (
     <>
-      <TopNav user={user} />
-      <AdminNav role={user.role} />
-      <main className="container">
-        <div className="row" style={{ justifyContent: "space-between" }}>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">Admin</p>
           <h1>Finance</h1>
-          <Link to="/admin/finance/export.csv" className="btn" reloadDocument>
+          <p className="kp-st-head__meta">
+            Revenue and COGS from reservation snapshots; cash reconciled from the ledger.
+          </p>
+        </div>
+        <div className="kp-st-actions">
+          <Link to="/admin/finance/export.csv" className="kp-btn kp-btn--outline kp-btn--sm" reloadDocument>
             Export ledger CSV
           </Link>
         </div>
-        <div className="grid">
-          <Stat label="Sales revenue" value={formatCents(summary.saleRevenueCents)} />
-          <Stat label="Wholesale cost (COGS)" value={formatCents(summary.wholesaleCostCents)} />
-          <Stat label="Gross margin" value={`${formatCents(summary.grossMarginCents)} (${marginPct}%)`} />
-          <Stat label="Card — online" value={formatCents(summary.cardOnlineCents)} />
-          <Stat label="Card — in person" value={formatCents(summary.cardInPersonCents)} />
-          <Stat label="Cash" value={formatCents(summary.cashCents)} />
-          <Stat label="Stripe fees" value={formatCents(summary.stripeFeesCents)} />
-          <Stat label="Refunds issued" value={formatCents(summary.refundsCents)} />
-          <Stat label="Net cash collected" value={formatCents(summary.netCashCollectedCents)} />
-        </div>
-        <p className="muted">
-          Revenue/COGS are derived from reservation snapshots; payments reconcile
-          the cash actually collected. Produce is tax-exempt, so no tax is
-          collected in this version.
-        </p>
-      </main>
-    </>
-  );
-}
+      </div>
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="card">
-      <div className="muted">{label}</div>
-      <h3>{value}</h3>
-    </div>
+      <SummaryTiles tiles={tiles} />
+
+      <p className="kp-muted">
+        Revenue/COGS are derived from reservation snapshots; payments reconcile
+        the cash actually collected. Produce is tax-exempt, so no tax is
+        collected in this version.
+      </p>
+    </>
   );
 }

@@ -9,8 +9,6 @@ import {
   supplierPickupSheets,
   pickupSheetLines,
 } from "~/db/schema";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 import { formatCents } from "~/lib/money";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -62,66 +60,71 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 }
 
 export default function WindowSheets({ loaderData }: Route.ComponentProps) {
-  const { user, window: win, sheets } = loaderData;
+  const { window: win, sheets } = loaderData;
   return (
     <>
-      <TopNav user={user} />
-      <AdminNav role={user.role} />
-      <main className="container">
-        <p>
-          <Link to={`/admin/windows/${win.id}`}>← {win.label}</Link>
-        </p>
-        <div className="row" style={{ justifyContent: "space-between" }}>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">
+            <Link to={`/admin/windows/${win.id}`} className="kp-linkact">{win.label}</Link>
+          </p>
           <h1>Supplier pickup sheets</h1>
-          <button className="secondary" onClick={() => window.print()}>
+          <p className="kp-st-head__meta">Per-supplier wholesale orders for this window.</p>
+        </div>
+        <div className="kp-st-actions">
+          <button className="kp-btn kp-btn--outline kp-btn--sm" onClick={() => window.print()}>
             Print
           </button>
         </div>
-        {sheets.length === 0 ? (
-          <div className="card">
-            <p>
-              No sheets yet. Commit the window's orders to generate per-supplier
-              sheets.
-            </p>
-          </div>
-        ) : (
-          sheets.map((s) => (
-            <div className="card" key={s.id}>
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <h2>{s.supplierName}</h2>
-                <span className="badge">{s.status}</span>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Qty ordered</th>
-                    <th>Unit cost</th>
-                    <th>Line cost</th>
-                    <th>Received</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.lines.map((l) => (
-                    <tr key={l.id}>
-                      <td>
-                        {l.displayName} ({l.unit})
-                      </td>
-                      <td>{l.quantityOrdered}</td>
-                      <td>{formatCents(l.unitCostCents)}</td>
-                      <td>{formatCents(l.unitCostCents * l.quantityOrdered)}</td>
-                      <td>{l.quantityReceived ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p>
-                <strong>Expected cost: {formatCents(s.expectedCostCents)}</strong>
-              </p>
+      </div>
+
+      {sheets.length === 0 ? (
+        <div className="kp-card" style={{ padding: "1.1rem" }}>
+          <p className="kp-muted" style={{ margin: 0 }}>
+            No sheets yet. Commit the window's orders to generate per-supplier sheets.
+          </p>
+        </div>
+      ) : (
+        sheets.map((s) => (
+          <div className="kp-ledger-wrap" key={s.id} style={{ marginBottom: "1.4rem" }}>
+            <div className="kp-ledger-head">
+              <h3>{s.supplierName}</h3>
+              <span className={
+                s.status === "reconciled" ? "kp-badge kp-badge--ok" :
+                s.status === "picked_up" ? "kp-badge kp-badge--active" :
+                "kp-badge kp-badge--draft"
+              }>{s.status}</span>
             </div>
-          ))
-        )}
-      </main>
+            <table className="kp-ledger">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th className="num">Qty ordered</th>
+                  <th className="num">Unit cost</th>
+                  <th className="num">Line cost</th>
+                  <th className="num">Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.lines.map((l) => (
+                  <tr key={l.id}>
+                    <td>
+                      {l.displayName} ({l.unit})
+                    </td>
+                    <td className="num">{l.quantityOrdered}</td>
+                    <td className="num">{formatCents(l.unitCostCents)}</td>
+                    <td className="num">{formatCents(l.unitCostCents * l.quantityOrdered)}</td>
+                    <td className="num">{l.quantityReceived ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid var(--kp-rule-soft)" }}>
+              <strong>Expected cost: {formatCents(s.expectedCostCents)}</strong>
+            </div>
+          </div>
+        ))
+      )}
     </>
   );
 }

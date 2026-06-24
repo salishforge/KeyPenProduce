@@ -2,7 +2,6 @@ import {
   type RouteConfig,
   index,
   route,
-  prefix,
 } from "@react-router/dev/routes";
 
 export default [
@@ -19,13 +18,14 @@ export default [
   // Customer storefront
   route("shop", "routes/shop/index.tsx"),
   route("shop/product/:listingId", "routes/shop/product.tsx"),
+  route("shop/keep/:slug", "routes/shop/keep.tsx"),
   route("cart", "routes/shop/cart.tsx"),
   route("orders", "routes/orders/index.tsx"),
   route("orders/:orderId", "routes/orders/detail.tsx"),
   route("account", "routes/account.tsx"),
 
-  // Admin portal
-  ...prefix("admin", [
+  // Admin portal (all children render inside StationShell via layout.tsx <Outlet/>)
+  route("admin", "routes/admin/layout.tsx", [
     index("routes/admin/index.tsx"),
     route("suppliers", "routes/admin/suppliers.tsx"),
     route("products", "routes/admin/products.tsx"),
@@ -39,6 +39,7 @@ export default [
     route("finance", "routes/admin/finance.tsx"),
     route("finance/export.csv", "routes/admin/finance-export.tsx"),
     route("users", "routes/admin/users.tsx"),
+    route("settings", "routes/admin/settings.tsx"),
   ]),
 
   // Fulfillment desk

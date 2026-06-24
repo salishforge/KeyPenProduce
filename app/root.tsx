@@ -6,8 +6,35 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
-import "./app.css";
+
+// Stylesheet order is load-bearing: theme.css MUST precede shop/admin/
+// preservation — they consume its --kp-* tokens.
+import "~/styles/theme.css";
+import "~/styles/shop.css";
+import "~/styles/admin.css";
+import "~/styles/preservation.css";
+
+// Fonts via <link> (preconnect + one combined Google Fonts sheet), kept out of
+// CSS @import to avoid the render-blocking penalty.
+export const links: LinksFunction = () => [
+  { rel: "preconnect", href: "https://fonts.googleapis.com" },
+  {
+    rel: "preconnect",
+    href: "https://fonts.gstatic.com",
+    crossOrigin: "anonymous",
+  },
+  {
+    rel: "stylesheet",
+    href:
+      "https://fonts.googleapis.com/css2?" +
+      "family=Bricolage+Grotesque:opsz,wght@12..96,400..700&" +
+      "family=Hanken+Grotesk:wght@400;500;600;700&" +
+      "family=Spectral:ital,wght@0,400;0,500;1,400;1,500&" +
+      "display=swap",
+  },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -42,11 +69,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     details = error.message;
   }
   return (
-    <main className="container">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="kp-auth">
+      <h1 className="kp-auth__heading">{message}</h1>
+      <p className="kp-muted">{details}</p>
       <p>
-        <a href="/">Return home</a>
+        <a href="/" className="kp-btn kp-btn--outline kp-btn--sm">
+          Return home
+        </a>
       </p>
     </main>
   );

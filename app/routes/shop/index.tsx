@@ -1,137 +1,259 @@
-import { Form, Link, redirect } from "react-router";
+/**
+ * /shop — the weekly storefront board + sticky basket.
+ *
+ * Thin route: the loader formats everything once (money/time/stock wording) into
+ * the storefront view models (~/lib/storefront/view-models) and hands them to
+ * the presentational components in ~/components/shop/*. Inventory is NOT locked
+ * here — the cart is a cookie (reserve-on-submit). Stock is only committed when
+ * the order is submitted from /cart, which calls placeOrder (all-or-nothing).
+ */
 import type { Route } from "./+types/index";
+import { redirect } from "react-router";
+import { inArray } from "drizzle-orm";
+
 import { requireUser } from "~/auth/session.server";
 import { getDb } from "~/db/client";
+import { listings as listingsTable, products } from "~/db/schema";
 import { getActiveWindow, getStorefrontListings } from "~/services/listings";
-import { addToCart, readCart, serializeCart, cartCount } from "~/services/cart.server";
-import { TopNav } from "~/components/nav";
-import {
-  Container,
-  PageHeader,
-  Card,
-  Button,
-  LinkButton,
-  Input,
-  Badge,
-} from "~/components/ui";
+import { readCart, addToCart, serializeCart, cartCount } from "~/services/cart.server";
 import { formatCents } from "~/lib/money";
-import { formatInZone } from "~/lib/time";
+import { formatInZone, APP_TIMEZONE } from "~/lib/time";
+import { CROPS } from "~/lib/preservation/preservation-data";
+import {
+  readStoreConfig,
+  pickupWindowLabel,
+  payLabel as configPayLabel,
+} from "~/lib/store-config";
+import type {
+  ShopData,
+  ListingView,
+  StockTone,
+  OrderingState,
+} from "~/lib/storefront/view-models";
 
-export function meta() {
-  return [{ title: "Shop · Key Pen Produce" }];
+import { ShopHeader } from "~/components/shop/ShopHeader";
+import { WeekHero } from "~/components/shop/WeekHero";
+import { ListingCard } from "~/components/shop/ListingCard";
+import { Basket } from "~/components/shop/Basket";
+import { Rhythm } from "~/components/shop/Rhythm";
+
+export function meta(_: Route.MetaArgs) {
+  return [
+    { title: "This week · Key Pen Produce" },
+    {
+      name: "description",
+      content:
+        "Reserve from this week's drop of Key Peninsula produce. Pick up Saturday at the Key Center barn.",
+    },
+  ];
 }
+
+const WEEK_NOTE_DEFAULT =
+  "This week's drop from the Key Peninsula. Reserve what you'd like and pick it up Saturday.";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
   const user = await requireUser(env, request);
   const db = getDb(env.DB);
-  const window = await getActiveWindow(db);
+
   const cart = await readCart(request);
+  const config = await readStoreConfig(env);
+  const pickupLabel = `${pickupWindowLabel(config)} · ${config.pickupLocation}`;
+  const payLabelText = configPayLabel(config);
+  const weekNote = WEEK_NOTE_DEFAULT;
+  const window = await getActiveWindow(db);
+
+  // Basket lines join the cart cookie back to listing rows (the cookie holds
+  // only listingId + quantity). Query by id so items survive board filtering.
+  const itemIds = cart.items.map((i) => i.listingId);
+  const cartRows = itemIds.length
+    ? await db
+        .select({
+          id: listingsTable.id,
+          displayName: listingsTable.displayName,
+          unit: listingsTable.unit,
+          priceCents: listingsTable.priceCents,
+        })
+        .from(listingsTable)
+        .where(inArray(listingsTable.id, itemIds))
+    : [];
+  const cartById = new Map(cartRows.map((r) => [r.id, r]));
+  const basketLines = cart.items.flatMap((i) => {
+    const r = cartById.get(i.listingId);
+    if (!r) return [];
+    return [
+      {
+        listingId: i.listingId,
+        label: `${r.displayName} · ${i.quantity} ${r.unit}`,
+        amountLabel: formatCents(r.priceCents * i.quantity),
+      },
+    ];
+  });
+  const subtotalCents = cart.items.reduce((sum, i) => {
+    const r = cartById.get(i.listingId);
+    return sum + (r ? r.priceCents * i.quantity : 0);
+  }, 0);
+  const basket = {
+    lines: basketLines,
+    subtotalLabel: formatCents(subtotalCents),
+    count: cartCount(cart),
+  };
+
   if (!window) {
-    return { user, window: null, listings: [], cartCount: cartCount(cart) };
+    const shop: ShopData = {
+      week: {
+        weekLabel: "No open window",
+        note: "Ordering isn't open right now — check back soon for next week's produce.",
+        ordering: { state: "closed", detail: "closed" },
+        pickupLabel,
+        payLabel: payLabelText,
+        boardSummary: "Nothing on the board this week",
+      },
+      listings: [],
+      basket,
+    };
+    return shop;
   }
-  const listings = await getStorefrontListings(db, window, user.id);
-  return {
-    user,
-    window: {
-      id: window.id,
-      label: window.label,
-      status: window.status,
-      closesAt: window.closesAt,
-      pickupDate: window.pickupDate,
+
+  const rows = await getStorefrontListings(db, window, user.id);
+
+  // preservationSlug lives on the product, not the per-week listing snapshot.
+  const productIds = [...new Set(rows.map((r) => r.productId))];
+  const prodRows = productIds.length
+    ? await db
+        .select({ id: products.id, preservationSlug: products.preservationSlug })
+        .from(products)
+        .where(inArray(products.id, productIds))
+    : [];
+  const slugByProduct = new Map(
+    prodRows.map((p) => [p.id, p.preservationSlug] as const),
+  );
+
+  const listings: ListingView[] = rows.map((row) => {
+    const slug = slugByProduct.get(row.productId) ?? undefined;
+    const remaining = Math.max(0, row.quantityRemaining);
+    const soldOut = remaining <= 0;
+    const { stockLabel, stockTone } = describeStock(remaining, soldOut);
+    return {
+      id: row.id,
+      name: row.displayName,
+      botanicalName: slug ? (CROPS[slug]?.botanicalName ?? "") : "",
+      priceLabel: formatCents(row.priceCents),
+      unitLabel: `/ ${row.unit}`,
+      stockLabel,
+      stockTone,
+      soldOut,
+      // Cap the stepper at 0 when the listing can't currently be ordered (window
+      // closed for it) so the board reflects orderability without a new UI state.
+      maxQty: row.orderable ? remaining : 0,
+      season: slug && CROPS[slug] ? { label: "In season" } : undefined,
+      preservationSlug: slug,
+    };
+  });
+
+  const nowMs = Date.now();
+  const closesMs = window.closesAt.getTime();
+  const orderingState: OrderingState =
+    window.status === "open" && nowMs < closesMs
+      ? closesMs - nowMs < 24 * 60 * 60 * 1000
+        ? "closing-soon"
+        : "open"
+      : "closed";
+
+  const sellingOut = listings.filter(
+    (l) => l.stockTone === "low" && !l.soldOut,
+  ).length;
+
+  const shop: ShopData = {
+    week: {
+      weekLabel: window.label,
+      note: weekNote,
+      ordering: {
+        state: orderingState,
+        detail: `closes ${formatInZone(window.closesAt, APP_TIMEZONE, {
+          weekday: "short",
+          hour: "numeric",
+          minute: "2-digit",
+        })}`,
+      },
+      pickupLabel,
+      payLabel: payLabelText,
+      boardSummary: `${listings.length} listings · ${sellingOut} selling out`,
     },
     listings,
-    cartCount: cartCount(cart),
+    basket,
   };
+  return shop;
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireUser(context.cloudflare.env, request);
+  const env = context.cloudflare.env;
+  await requireUser(env, request);
   const form = await request.formData();
-  const windowId = String(form.get("windowId") ?? "");
-  const listingId = String(form.get("listingId") ?? "");
-  const quantity = Math.max(1, Number(form.get("quantity") ?? 1));
-  const cart = await readCart(request);
-  const next = addToCart(cart, windowId, listingId, quantity);
-  return redirect("/shop", {
-    headers: { "Set-Cookie": await serializeCart(next) },
-  });
+  const intent = String(form.get("intent") ?? "");
+
+  if (intent === "checkout") {
+    // The board only reserves into the cookie; /cart is the review + final
+    // submit step (it calls the oversell-tested placeOrder). Payment is deferred
+    // in this app — an invoice is raised when the admin commits the window, or
+    // cash at pickup — so both basket buttons land on the same review step.
+    return redirect("/cart");
+  }
+
+  if (intent === "add") {
+    const listingId = String(form.get("listingId") ?? "");
+    const qty = Math.floor(Number(form.get("qty") ?? 0));
+    if (!listingId || qty <= 0) return redirect("/shop");
+
+    const db = getDb(env.DB);
+    const window = await getActiveWindow(db);
+    if (!window) return redirect("/shop");
+
+    const cart = await readCart(request);
+    const next = addToCart(cart, window.id, listingId, qty);
+    return redirect("/shop", {
+      headers: { "Set-Cookie": await serializeCart(next) },
+    });
+  }
+
+  return redirect("/shop");
 }
 
-export default function Shop({ loaderData }: Route.ComponentProps) {
-  const { user, window, listings, cartCount } = loaderData;
+export default function ShopRoute({ loaderData }: Route.ComponentProps) {
+  const shop = loaderData;
   return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <TopNav user={user} />
-      <Container>
-        <PageHeader
-          title="This week's produce"
-          subtitle={
-            window
-              ? `${window.label} · order by ${formatInZone(new Date(window.closesAt))}`
-              : undefined
-          }
-          actions={
-            <LinkButton to="/cart" variant={cartCount ? "primary" : "secondary"}>
-              Cart ({cartCount})
-            </LinkButton>
-          }
-        />
+    <>
+      <ShopHeader basketCount={shop.basket.count} />
 
-        {!window ? (
-          <Card>
-            <p className="text-muted">
-              Ordering isn't open right now. Check back soon for the next week's
-              produce.
-            </p>
-          </Card>
-        ) : listings.length === 0 ? (
-          <Card>
-            <p className="text-muted">No produce is available to reserve right now.</p>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((l) => (
-              <Card key={l.id} className="flex flex-col">
-                <Link
-                  to={`/shop/product/${l.id}`}
-                  className="text-lg font-semibold text-ink hover:text-brand-dark"
-                >
-                  {l.displayName}
-                </Link>
-                <div className="mt-1 text-sm text-muted">
-                  <span className="font-medium text-ink">
-                    {formatCents(l.priceCents)}
-                  </span>{" "}
-                  / {l.unit}
-                </div>
-                <div className="mt-0.5 text-sm text-muted">
-                  {l.quantityRemaining} available
-                </div>
-                <div className="mt-auto pt-4">
-                  {l.orderable ? (
-                    <Form method="post" className="flex items-center gap-2">
-                      <input type="hidden" name="windowId" value={window.id} />
-                      <input type="hidden" name="listingId" value={l.id} />
-                      <Input
-                        type="number"
-                        name="quantity"
-                        defaultValue={1}
-                        min={1}
-                        max={l.quantityRemaining}
-                        className="w-20"
-                      />
-                      <Button type="submit">Reserve</Button>
-                    </Form>
-                  ) : (
-                    <Badge tone="warning">Ordering closed</Badge>
-                  )}
-                </div>
-              </Card>
+      <WeekHero week={shop.week} />
+
+      <div className="kp-shop-main">
+        <section aria-label="This week's produce">
+          <div className="kp-board-head">
+            <h2>The board</h2>
+            <p>{shop.week.boardSummary}</p>
+          </div>
+          <div className="kp-board">
+            {shop.listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>
-        )}
-      </Container>
-    </div>
+        </section>
+
+        <Basket basket={shop.basket} />
+      </div>
+
+      <Rhythm />
+    </>
   );
+}
+
+function describeStock(
+  remaining: number,
+  soldOut: boolean,
+): { stockLabel: string; stockTone: StockTone } {
+  if (soldOut) return { stockLabel: "Sold out", stockTone: "out" };
+  if (remaining <= 4)
+    return { stockLabel: `Only ${remaining} left`, stockTone: "low" };
+  return { stockLabel: `${remaining} available`, stockTone: "ok" };
 }

@@ -38,6 +38,11 @@ export const products = sqliteTable(
     slug: text("slug").notNull(),
     description: text("description"),
     category: text("category"),
+    // Links a product to a crop in the preservation knowledge base
+    // (app/lib/preservation/preservation-data.ts CROPS keys, e.g. "marionberries").
+    // Nullable — not every product has a guide; surfaced on the storefront as the
+    // "ways to keep it" link.
+    preservationSlug: text("preservationSlug"),
     unit: text("unit", { enum: PRODUCT_UNITS }).notNull().default("each"),
     imageKey: text("imageKey"),
     defaultWholesaleCents: integer("defaultWholesaleCents").notNull().default(0),

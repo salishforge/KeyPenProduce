@@ -1,6 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { fileURLToPath } from "node:url";
@@ -12,7 +11,6 @@ export default defineConfig({
     // proxy at startup; with this off, the storefront/admin run locally and the
     // assistant's model calls simply no-op in dev (handled gracefully).
     cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
-    tailwindcss(),
     reactRouter(),
     tsconfigPaths(),
   ],

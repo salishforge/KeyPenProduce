@@ -8,7 +8,7 @@ import {
   orderingWindows,
   user as userTable,
 } from "~/db/schema";
-import { TopNav } from "~/components/nav";
+import { DeskHeader } from "~/components/desk/DeskHeader";
 import { formatCents } from "~/lib/money";
 import { formatInZone } from "~/lib/time";
 
@@ -64,35 +64,62 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
+function orderStatusBadge(status: string) {
+  if (status === "active") return "kp-badge kp-badge--active";
+  if (status === "committed") return "kp-badge kp-badge--draft";
+  return "kp-badge";
+}
+
+function paymentStatusBadge(status: string) {
+  if (status === "paid") return "kp-badge kp-badge--ok";
+  if (status === "pending") return "kp-badge kp-badge--low";
+  return "kp-badge";
+}
+
 export default function Desk({ loaderData }: Route.ComponentProps) {
-  const { user, windows, pickups } = loaderData;
+  const { windows, pickups } = loaderData;
   return (
     <>
-      <TopNav user={user} />
-      <main className="container">
-        <h1>Pickup desk</h1>
+      <DeskHeader />
+      <main style={{ padding: "clamp(1rem, 3vw, 1.8rem)" }}>
+        <div className="kp-st-head">
+          <div>
+            <p className="kp-eyebrow">Fulfillment</p>
+            <h1 className="kp-st-head__title">Pickup desk</h1>
+            {windows.length > 0 && (
+              <p className="kp-st-head__meta">
+                {windows.map((w, i) => (
+                  <span key={w.id}>
+                    {i > 0 && " · "}
+                    {w.label} · Pickup{" "}
+                    {formatInZone(new Date(w.pickupDate), undefined, {
+                      dateStyle: "full",
+                    })}
+                  </span>
+                ))}
+              </p>
+            )}
+          </div>
+        </div>
         {windows.length === 0 ? (
-          <div className="card">
-            <p>No orders are currently ready for pickup.</p>
+          <div className="kp-card" style={{ padding: "1.1rem" }}>
+            <p className="kp-muted" style={{ margin: 0 }}>
+              No orders are currently ready for pickup.
+            </p>
           </div>
         ) : (
-          <>
-            {windows.map((w) => (
-              <p key={w.id} className="muted">
-                {w.label} · Pickup{" "}
-                {formatInZone(new Date(w.pickupDate), undefined, {
-                  dateStyle: "full",
-                })}
-              </p>
-            ))}
-            <table className="card">
+          <div className="kp-ledger-wrap">
+            <div className="kp-ledger-head">
+              <h3>Orders awaiting pickup</h3>
+            </div>
+            <table className="kp-ledger">
               <thead>
                 <tr>
                   <th>Customer</th>
                   <th>Pickup name</th>
                   <th>Order status</th>
                   <th>Payment</th>
-                  <th>Total</th>
+                  <th className="num">Total</th>
                   <th></th>
                 </tr>
               </thead>
@@ -102,14 +129,21 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
                     <td>{o.customer}</td>
                     <td>{o.pickupName ?? o.customer}</td>
                     <td>
-                      <span className="badge">{o.status}</span>
+                      <span className={orderStatusBadge(o.status)}>
+                        {o.status}
+                      </span>
                     </td>
                     <td>
-                      <span className="badge">{o.paymentStatus}</span>
+                      <span className={paymentStatusBadge(o.paymentStatus)}>
+                        {o.paymentStatus}
+                      </span>
                     </td>
-                    <td>{formatCents(o.totalCents)}</td>
+                    <td className="num">{formatCents(o.totalCents)}</td>
                     <td>
-                      <Link to={`/desk/order/${o.id}`} className="btn">
+                      <Link
+                        to={`/desk/order/${o.id}`}
+                        className="kp-btn kp-btn--outline kp-btn--sm"
+                      >
                         Open
                       </Link>
                     </td>
@@ -117,7 +151,7 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
                 ))}
               </tbody>
             </table>
-          </>
+          </div>
         )}
       </main>
     </>

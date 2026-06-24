@@ -10,8 +10,6 @@ import {
   USER_ROLES,
 } from "~/db/schema";
 import { newId } from "~/lib/ids";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -77,14 +75,22 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Users({ loaderData }: Route.ComponentProps) {
-  const { user, users, windows } = loaderData;
+  const { users, windows } = loaderData;
   return (
     <>
-      <TopNav user={user} />
-      <AdminNav role={user.role} />
-      <main className="container">
-        <h1>Users &amp; roles</h1>
-        <table className="card">
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">Admin</p>
+          <h1>Users &amp; roles</h1>
+          <p className="kp-st-head__meta">Manage account roles and post-cutoff access overrides.</p>
+        </div>
+      </div>
+
+      <div className="kp-ledger-wrap">
+        <div className="kp-ledger-head">
+          <h3>All users</h3>
+        </div>
+        <table className="kp-ledger">
           <thead>
             <tr>
               <th>Name</th>
@@ -99,34 +105,34 @@ export default function Users({ loaderData }: Route.ComponentProps) {
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>
-                  <Form method="post" className="row">
+                  <Form method="post" style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                     <input type="hidden" name="intent" value="set-role" />
                     <input type="hidden" name="userId" value={u.id} />
-                    <select name="role" defaultValue={u.role}>
+                    <select className="kp-select" name="role" defaultValue={u.role} style={{ width: "auto" }}>
                       {USER_ROLES.map((r) => (
                         <option key={r} value={r}>
                           {r}
                         </option>
                       ))}
                     </select>
-                    <button className="secondary" type="submit">
+                    <button className="kp-btn kp-btn--outline kp-btn--sm" type="submit">
                       Save
                     </button>
                   </Form>
                 </td>
                 <td>
                   {windows.length > 0 && (
-                    <Form method="post" className="row">
+                    <Form method="post" style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                       <input type="hidden" name="intent" value="grant-override" />
                       <input type="hidden" name="userId" value={u.id} />
-                      <select name="windowId">
+                      <select className="kp-select" name="windowId" style={{ width: "auto" }}>
                         {windows.map((w) => (
                           <option key={w.id} value={w.id}>
                             {w.label}
                           </option>
                         ))}
                       </select>
-                      <button className="secondary" type="submit">
+                      <button className="kp-btn kp-btn--outline kp-btn--sm" type="submit">
                         Grant
                       </button>
                     </Form>
@@ -136,7 +142,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
             ))}
           </tbody>
         </table>
-      </main>
+      </div>
     </>
   );
 }

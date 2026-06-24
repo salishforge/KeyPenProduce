@@ -1,10 +1,14 @@
+/**
+ * /admin/assistant — AI catalog assistant chat page.
+ *
+ * Renders content only — chrome (sidebar, main region) is provided by the
+ * parent StationShell layout (app/routes/admin/layout.tsx). All behavior and
+ * data-fetching is unchanged; only the presentation layer has been ported to
+ * the kp- design system.
+ */
 import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/assistant";
 import { requireRole } from "~/auth/session.server";
-import { TopNav } from "~/components/nav";
-import { AdminNav } from "~/components/admin-nav";
-import { Container, PageHeader, Card, Button, Input, Select } from "~/components/ui";
-import { cn } from "~/components/ui/cn";
 import { getDb } from "~/db/client";
 import * as catalog from "~/services/catalog";
 
@@ -41,7 +45,7 @@ const SUGGESTIONS = [
 ];
 
 export default function Assistant({ loaderData }: Route.ComponentProps) {
-  const { user, suppliers, windows } = loaderData;
+  const { suppliers, windows } = loaderData;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -161,142 +165,145 @@ export default function Assistant({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <TopNav user={user} />
-      <AdminNav role={user.role} />
-      <Container>
-        <PageHeader
-          title="Catalog assistant"
-          subtitle="Add products, set availability, or import a spreadsheet — just by chatting."
-          actions={
-            <Button variant="secondary" size="sm" onClick={undo} disabled={busy}>
-              Undo last
-            </Button>
-          }
-        />
-
-        <Card className="mb-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-muted">
-                Supplier (for imports)
-              </label>
-              <Select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-48"
-              >
-                {suppliers.length === 0 && <option value="">No suppliers yet</option>}
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-muted">
-                List in window (optional)
-              </label>
-              <Select
-                value={windowId}
-                onChange={(e) => setWindowId(e.target.value)}
-                className="w-48"
-              >
-                <option value="">— catalog only —</option>
-                {windows.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.label} ({w.status})
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onFile(f);
-                }}
-              />
-              <Button
-                variant="secondary"
-                onClick={() => fileInput.current?.click()}
-                disabled={busy || !supplierId}
-              >
-                Import spreadsheet (CSV / Excel)
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="flex h-[60vh] flex-col p-0">
-          <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto p-4">
-            {messages.length === 0 && (
-              <div className="text-sm text-muted">
-                <p className="mb-2">Try something like:</p>
-                <div className="flex flex-col items-start gap-1">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => send(s)}
-                      className="rounded-lg bg-canvas px-3 py-1.5 text-left text-brand-dark hover:bg-emerald-50"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex",
-                  m.role === "user" ? "justify-end" : "justify-start",
-                )}
-              >
-                <div
-                  className={cn(
-                    "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm",
-                    m.role === "user"
-                      ? "bg-brand text-white"
-                      : "bg-canvas text-ink",
-                  )}
-                >
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {busy && <div className="text-sm text-muted">Working…</div>}
-          </div>
-
-          <form
-            className="flex items-center gap-2 border-t border-line p-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(input);
-            }}
+    <>
+      <div className="kp-st-head">
+        <div>
+          <p className="kp-eyebrow">Catalog</p>
+          <h1>Assistant</h1>
+          <p className="kp-st-head__meta">
+            Add products, set availability, or import a spreadsheet — just by chatting.
+          </p>
+        </div>
+        <div className="kp-st-head__acts">
+          <button
+            className="kp-btn kp-btn--ghost kp-btn--sm"
+            onClick={undo}
+            disabled={busy}
           >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Add a product, set a price, import a spreadsheet…"
-              disabled={busy}
+            Undo last
+          </button>
+        </div>
+      </div>
+
+      {/* Import context — supplier + window selectors and file trigger */}
+      <div className="kp-card kp-assistant__ctx">
+        <div className="kp-assistant__ctx-row">
+          <label className="kp-field">
+            <span className="kp-field__label">Supplier (for imports)</span>
+            <select
+              className="kp-select"
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+            >
+              {suppliers.length === 0 && <option value="">No suppliers yet</option>}
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="kp-field">
+            <span className="kp-field__label">List in window (optional)</span>
+            <select
+              className="kp-select"
+              value={windowId}
+              onChange={(e) => setWindowId(e.target.value)}
+            >
+              <option value="">— catalog only —</option>
+              {windows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label} ({w.status})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="kp-assistant__ctx-upload">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="kp-sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onFile(f);
+              }}
             />
-            <Button type="submit" disabled={busy || !input.trim()}>
-              Send
-            </Button>
-          </form>
-        </Card>
-        <p className="mt-2 text-xs text-muted">
-          Changes are applied immediately. Say "undo" or use Undo last to revert
-          the most recent change.
-        </p>
-      </Container>
-    </div>
+            <button
+              className="kp-btn kp-btn--outline kp-btn--sm"
+              onClick={() => fileInput.current?.click()}
+              disabled={busy || !supplierId}
+            >
+              Import spreadsheet (CSV / Excel)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat log */}
+      <div className="kp-card kp-assistant">
+        <div ref={scroller} className="kp-assistant__log">
+          {messages.length === 0 && (
+            <div className="kp-assistant__empty">
+              <p className="kp-muted" style={{ marginBottom: "0.5rem" }}>Try something like:</p>
+              <div className="kp-assistant__suggestions">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => send(s)}
+                    className="kp-assistant__suggestion"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`kp-assistant__msg kp-assistant__msg--${m.role}`}
+            >
+              <div className="kp-assistant__bubble">{m.content}</div>
+            </div>
+          ))}
+          {busy && (
+            <div className="kp-assistant__msg kp-assistant__msg--assistant">
+              <div className="kp-assistant__bubble kp-muted">Working…</div>
+            </div>
+          )}
+        </div>
+
+        <form
+          className="kp-assistant__row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(input);
+          }}
+        >
+          <input
+            className="kp-input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Add a product, set a price, import a spreadsheet…"
+            disabled={busy}
+          />
+          <button
+            type="submit"
+            className="kp-btn kp-btn--primary"
+            disabled={busy || !input.trim()}
+          >
+            Send
+          </button>
+        </form>
+      </div>
+
+      <p className="kp-muted" style={{ fontSize: "0.78rem", marginTop: "0.6rem" }}>
+        Changes are applied immediately. Say "undo" or use Undo last to revert
+        the most recent change.
+      </p>
+    </>
   );
 }

@@ -5,13 +5,14 @@ import { requireUser } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { listings } from "~/db/schema";
 import {
+  cartCount,
   emptyCart,
   readCart,
   serializeCart,
   setCartItem,
 } from "~/services/cart.server";
 import { placeOrder } from "~/services/ordering";
-import { TopNav } from "~/components/nav";
+import { ShopHeader } from "~/components/shop/ShopHeader";
 import { formatCents } from "~/lib/money";
 
 export function meta() {
@@ -22,7 +23,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
   const user = await requireUser(env, request);
   const cart = await readCart(request);
-  if (cart.items.length === 0) return { user, items: [], total: 0 };
+  const count = cartCount(cart);
+  if (cart.items.length === 0) return { user, items: [], total: 0, count };
   const db = getDb(env.DB);
   const rows = await db
     .select()
@@ -45,7 +47,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
   const total = items.reduce((s, i) => s + i.lineCents, 0);
-  return { user, items, total };
+  return { user, items, total, count };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -95,83 +97,96 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Cart({ loaderData }: Route.ComponentProps) {
-  const { user, items, total } = loaderData;
+  const { user, items, total, count } = loaderData;
   const actionData = useActionData<typeof action>();
   return (
     <>
-      <TopNav user={user} />
-      <main className="container">
-        <h1>Your cart</h1>
-        {actionData?.error && <p className="error">{actionData.error}</p>}
+      <ShopHeader basketCount={count} />
+      <main className="kp-cart">
+        <h1>Your basket</h1>
+        {actionData?.error && <p className="kp-error">{actionData.error}</p>}
+
         {items.length === 0 ? (
-          <div className="card">
-            <p>Your cart is empty.</p>
-            <Link to="/shop" className="btn">
-              Browse produce
+          <div className="kp-card">
+            <p className="kp-muted">Your basket is empty.</p>
+            <Link to="/shop" className="kp-btn kp-btn--primary kp-btn--sm">
+              Browse this week
             </Link>
           </div>
         ) : (
           <>
-            <table className="card">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Price</th>
-                  <th>Qty</th>
-                  <th>Subtotal</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((i) => (
-                  <tr key={i.listingId}>
-                    <td>{i.name}</td>
-                    <td>
+            <div className="kp-card">
+              {items.map((i) => (
+                <div className="kp-cart__line" key={i.listingId}>
+                  <div className="kp-cart__info">
+                    <div className="kp-cart__name">{i.name}</div>
+                    <div className="kp-muted">
                       {formatCents(i.priceCents)} / {i.unit}
-                    </td>
-                    <td>
-                      <Form method="post" className="row">
-                        <input type="hidden" name="intent" value="update" />
-                        <input type="hidden" name="listingId" value={i.listingId} />
-                        <input
-                          type="number"
-                          name="quantity"
-                          defaultValue={i.quantity}
-                          min={0}
-                          max={i.remaining}
-                          style={{ width: 64 }}
-                        />
-                        <button className="secondary" type="submit">
-                          Update
-                        </button>
-                      </Form>
-                    </td>
-                    <td>{formatCents(i.lineCents)}</td>
-                    <td>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="update" />
-                        <input type="hidden" name="listingId" value={i.listingId} />
-                        <input type="hidden" name="quantity" value={0} />
-                        <button className="danger" type="submit">
-                          Remove
-                        </button>
-                      </Form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="card">
-              <h3>Total: {formatCents(total)}</h3>
+                    </div>
+                  </div>
+
+                  <Form method="post" className="kp-cart__qty">
+                    <input type="hidden" name="intent" value="update" />
+                    <input type="hidden" name="listingId" value={i.listingId} />
+                    <input
+                      className="kp-input kp-input--qty"
+                      type="number"
+                      name="quantity"
+                      defaultValue={i.quantity}
+                      min={0}
+                      max={i.remaining}
+                      aria-label={`Quantity for ${i.name}`}
+                    />
+                    <button
+                      className="kp-btn kp-btn--outline kp-btn--sm"
+                      type="submit"
+                    >
+                      Update
+                    </button>
+                  </Form>
+
+                  <div className="kp-cart__amt">{formatCents(i.lineCents)}</div>
+
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="update" />
+                    <input type="hidden" name="listingId" value={i.listingId} />
+                    <input type="hidden" name="quantity" value={0} />
+                    <button
+                      className="kp-btn kp-btn--ghost kp-btn--sm"
+                      type="submit"
+                      aria-label={`Remove ${i.name}`}
+                    >
+                      Remove
+                    </button>
+                  </Form>
+                </div>
+              ))}
+
+              <div className="kp-cart__sum">
+                <span>Held subtotal</span>
+                <b>{formatCents(total)}</b>
+              </div>
+            </div>
+
+            <div className="kp-card">
               <Form method="post">
                 <input type="hidden" name="intent" value="submit" />
-                <label>Pickup name</label>
-                <input name="pickupName" defaultValue={user.name} />
-                <p className="muted">
-                  Placing your order reserves these items. You'll get an invoice
-                  once we confirm the week's orders.
+                <label className="kp-field">
+                  <span className="kp-field__label">Pickup name</span>
+                  <input
+                    className="kp-input"
+                    name="pickupName"
+                    defaultValue={user.name}
+                  />
+                </label>
+                <p className="kp-cart__fineprint">
+                  Placing your order reserves these items right away. You&rsquo;ll
+                  get an invoice once we confirm the week&rsquo;s orders, or you
+                  can pay cash at pickup.
                 </p>
-                <button type="submit">Place order</button>
+                <button className="kp-btn kp-btn--primary" type="submit">
+                  Reserve my basket
+                </button>
               </Form>
             </div>
           </>
