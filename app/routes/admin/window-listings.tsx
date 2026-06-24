@@ -2,6 +2,7 @@ import { Form, Link } from "react-router";
 import { and, eq, notInArray } from "drizzle-orm";
 import type { Route } from "./+types/window-listings";
 import { requireRole } from "~/auth/session.server";
+import { LivePoll } from "~/components/live-poll";
 import { getDb } from "~/db/client";
 import { listings, products, orderingWindows } from "~/db/schema";
 import { newId } from "~/lib/ids";
@@ -9,7 +10,7 @@ import { parseDollarsToCents, formatCents } from "~/lib/money";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const [win] = await db
     .select()
@@ -37,7 +38,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  await requireRole(env, request, ["admin"]);
+  await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -90,6 +91,7 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
   const { window: win, listings, available } = loaderData;
   return (
     <>
+      <LivePoll />
       <div className="kp-st-head">
         <div>
           <p className="kp-eyebrow">

@@ -14,6 +14,8 @@ interface NavItem {
   label: string;
   /** `end` for index-style exact matching (e.g. the dashboard root). */
   end?: boolean;
+  /** Hidden from product_admin — the financial/account areas are admin-only. */
+  adminOnly?: boolean;
 }
 
 // Routes must match app/routes.ts. Window sub-pages (listings, reconcile,
@@ -28,16 +30,24 @@ const PRIMARY: NavItem[] = [
 ];
 
 const RECORDS: NavItem[] = [
-  { to: "/admin/finance", label: "Finance" },
-  { to: "/admin/users", label: "Customers" },
-  { to: "/admin/settings", label: "Settings" },
+  { to: "/admin/finance", label: "Finance", adminOnly: true },
+  { to: "/admin/users", label: "Customers", adminOnly: true },
+  { to: "/admin/settings", label: "Settings", adminOnly: true },
 ];
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? "is-active" : undefined;
 }
 
-export function StationShell({ children }: { children: ReactNode }) {
+export function StationShell({
+  children,
+  role,
+}: {
+  children: ReactNode;
+  role: string;
+}) {
+  const canSee = (item: NavItem) => !item.adminOnly || role === "admin";
+  const records = RECORDS.filter(canSee);
   return (
     <div className="kp-station">
       <nav className="kp-station__side">
@@ -47,13 +57,13 @@ export function StationShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="kp-station__sub">Station</div>
         <div className="kp-station__nav">
-          {PRIMARY.map((item) => (
+          {PRIMARY.filter(canSee).map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
               {item.label}
             </NavLink>
           ))}
-          <div className="grp">Records</div>
-          {RECORDS.map((item) => (
+          {records.length > 0 ? <div className="grp">Records</div> : null}
+          {records.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
               {item.label}
             </NavLink>

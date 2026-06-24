@@ -10,7 +10,7 @@ import { formatInZone } from "~/lib/time";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const [win] = await db
     .select()
@@ -30,7 +30,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -76,10 +76,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       break;
     }
     case "commit":
+      // Financial: raises invoices + buy sheets. Admin-only (product_admin may
+      // open/close/reopen the window but not commit or complete it).
+      await requireRole(env, request, ["admin"]);
       await commitWindow(db, env, id, user.id);
       await generateSupplierSheets(db, id);
       return redirect(`/admin/windows/${id}/sheets`);
     case "complete":
+      await requireRole(env, request, ["admin"]);
       await db
         .update(orderingWindows)
         .set({ status: "completed", completedAt: nowDate, updatedAt: nowDate })
@@ -91,7 +95,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowDetail({ loaderData }: Route.ComponentProps) {
-  const { window: win, listingCount, placedOrders } = loaderData;
+  const { window: win, listingCount, placedOrders, user } = loaderData;
+  const isAdmin = user.role === "admin";
   return (
     <>
       <div className="kp-st-head">
@@ -129,18 +134,22 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
           <Link to={`/admin/windows/${win.id}/listings`} className="kp-btn kp-btn--outline kp-btn--sm">
             Listings / availability
           </Link>
-          <Link
-            to={`/admin/windows/${win.id}/reservations`}
-            className="kp-btn kp-btn--outline kp-btn--sm"
-          >
-            Review reservations
-          </Link>
-          <Link to={`/admin/windows/${win.id}/sheets`} className="kp-btn kp-btn--outline kp-btn--sm">
-            Supplier sheets
-          </Link>
-          <Link to={`/admin/windows/${win.id}/reconcile`} className="kp-btn kp-btn--outline kp-btn--sm">
-            Reconcile pickup
-          </Link>
+          {isAdmin ? (
+            <>
+              <Link
+                to={`/admin/windows/${win.id}/reservations`}
+                className="kp-btn kp-btn--outline kp-btn--sm"
+              >
+                Review reservations
+              </Link>
+              <Link to={`/admin/windows/${win.id}/sheets`} className="kp-btn kp-btn--outline kp-btn--sm">
+                Supplier sheets
+              </Link>
+              <Link to={`/admin/windows/${win.id}/reconcile`} className="kp-btn kp-btn--outline kp-btn--sm">
+                Reconcile pickup
+              </Link>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -171,7 +180,7 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
               </button>
             </Form>
           )}
-          {(win.status === "open" || win.status === "closed") && (
+          {isAdmin && (win.status === "open" || win.status === "closed") && (
             <Form method="post">
               <input type="hidden" name="intent" value="commit" />
               <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
@@ -179,7 +188,7 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
               </button>
             </Form>
           )}
-          {win.status === "reconciled" && (
+          {isAdmin && win.status === "reconciled" && (
             <Form method="post">
               <input type="hidden" name="intent" value="complete" />
               <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">

@@ -86,7 +86,8 @@ function toWindowStage(status: WindowStatus): WindowStage {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
+  const isAdmin = user.role === "admin";
   const db = getDb(env.DB);
   const url = new URL(request.url);
 
@@ -130,6 +131,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       options,
       formMode: "none" as const,
       editing: undefined,
+      isAdmin,
     };
   }
 
@@ -344,6 +346,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     options,
     formMode: isNew ? ("new" as const) : editId ? ("edit" as const) : ("none" as const),
     editing,
+    isAdmin,
   };
 }
 
@@ -353,11 +356,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
   const windowId = String(form.get("windowId") ?? "");
+
+  // Committing, raising supplier sheets, and reconciling are financial actions —
+  // admin only. product_admin may still manage listings (save-listing below).
+  const financial = new Set(["commit-window", "supplier-sheets", "reconcile-window"]);
+  if (financial.has(intent) && user.role !== "admin") {
+    return data({ ok: false, error: "Admins only." }, { status: 403 });
+  }
 
   switch (intent) {
     case "commit-window": {
@@ -462,7 +472,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 /* -------------------------------------------------------------------------- */
 
 export default function AdminThisWeek({ loaderData }: Route.ComponentProps) {
-  const { window, windowId, options, formMode, editing } = loaderData;
+  const { window, windowId, options, formMode, editing, isAdmin } = loaderData;
 
   if (!windowId) {
     // No active window — minimal state.
@@ -492,27 +502,31 @@ export default function AdminThisWeek({ loaderData }: Route.ComponentProps) {
           <p className="kp-st-head__meta">{window.meta}</p>
         </div>
         <div className="kp-st-head__acts">
-          <Form method="post">
-            <input type="hidden" name="intent" value="supplier-sheets" />
-            <input type="hidden" name="windowId" value={windowId} />
-            <button type="submit" className="kp-btn kp-btn--outline kp-btn--sm">
-              Supplier sheets
-            </button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="reconcile-window" />
-            <input type="hidden" name="windowId" value={windowId} />
-            <button type="submit" className="kp-btn kp-btn--outline kp-btn--sm">
-              Reconcile
-            </button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="commit-window" />
-            <input type="hidden" name="windowId" value={windowId} />
-            <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
-              Commit window
-            </button>
-          </Form>
+          {isAdmin ? (
+            <>
+              <Form method="post">
+                <input type="hidden" name="intent" value="supplier-sheets" />
+                <input type="hidden" name="windowId" value={windowId} />
+                <button type="submit" className="kp-btn kp-btn--outline kp-btn--sm">
+                  Supplier sheets
+                </button>
+              </Form>
+              <Form method="post">
+                <input type="hidden" name="intent" value="reconcile-window" />
+                <input type="hidden" name="windowId" value={windowId} />
+                <button type="submit" className="kp-btn kp-btn--outline kp-btn--sm">
+                  Reconcile
+                </button>
+              </Form>
+              <Form method="post">
+                <input type="hidden" name="intent" value="commit-window" />
+                <input type="hidden" name="windowId" value={windowId} />
+                <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+                  Commit window
+                </button>
+              </Form>
+            </>
+          ) : null}
         </div>
       </div>
 

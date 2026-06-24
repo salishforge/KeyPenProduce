@@ -9,7 +9,7 @@ import { parseDollarsToCents, formatCents } from "~/lib/money";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireRole(env, request, ["admin"]);
+  const user = await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const rows = await db
     .select({
@@ -34,7 +34,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  await requireRole(env, request, ["admin"]);
+  await requireRole(env, request, ["admin", "product_admin"]);
   const db = getDb(env.DB);
   const form = await request.formData();
   const name = String(form.get("name") ?? "").trim();

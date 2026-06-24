@@ -21,6 +21,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return null;
 }
 
+const STEPS: [string, string][] = [
+  ["Browse", "See the week's available produce with photos and prices."],
+  ["Reserve", "Pick the items and quantities you want before the cutoff."],
+  ["Confirm", "We confirm your order and send an invoice — pay online or in person."],
+  ["Pick up", "Grab your produce at the scheduled pickup time."],
+];
+
 export default function Home() {
   return (
     <>
@@ -61,30 +68,13 @@ export default function Home() {
         </div>
 
         <div className="kp-rhythm">
-          <div className="kp-rhythm__step">
-            <p className="kp-rhythm__n">01</p>
-            <p className="kp-rhythm__t">Browse the week</p>
-            <p className="kp-rhythm__d">
-              See what's available each week and reserve the items and
-              quantities you want before the cutoff.
-            </p>
-          </div>
-          <div className="kp-rhythm__step">
-            <p className="kp-rhythm__n">02</p>
-            <p className="kp-rhythm__t">Get your invoice</p>
-            <p className="kp-rhythm__d">
-              We confirm orders and send you an invoice — pay online or bring
-              cash to pickup.
-            </p>
-          </div>
-          <div className="kp-rhythm__step">
-            <p className="kp-rhythm__n">03</p>
-            <p className="kp-rhythm__t">Pick up your produce</p>
-            <p className="kp-rhythm__d">
-              Collect your order at the scheduled pickup time and location on
-              the Key Peninsula.
-            </p>
-          </div>
+          {STEPS.map(([title, body], i) => (
+            <div key={title} className="kp-rhythm__step">
+              <p className="kp-rhythm__n">{String(i + 1).padStart(2, "0")}</p>
+              <p className="kp-rhythm__t">{title}</p>
+              <p className="kp-rhythm__d">{body}</p>
+            </div>
+          ))}
         </div>
       </main>
     </>
