@@ -13,6 +13,7 @@ import type {
   EditableListing,
   ListingFormOptions,
 } from "~/lib/admin/view-models";
+import { EditableSelect } from "~/components/admin/EditableSelect";
 
 /** Sentinel produce-select value that reveals the inline "new produce" field. */
 const NEW_PRODUCE = "__new__";
@@ -87,18 +88,14 @@ export function ListingEditForm({
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Unit</span>
-            <input
-              className="kp-input"
+            <EditableSelect
               name="unit"
-              list="listing-edit-unit-options"
+              options={options.units}
               defaultValue={listing?.unit ?? "each"}
-              autoComplete="off"
+              addLabel="+ New unit…"
+              newPlaceholder="e.g. pint, dozen"
+              required
             />
-            <datalist id="listing-edit-unit-options">
-              {options.units.map((u) => (
-                <option key={u} value={u} />
-              ))}
-            </datalist>
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Qty available</span>
