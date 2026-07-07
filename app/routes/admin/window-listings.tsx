@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Form, Link } from "react-router";
 import { and, eq, notInArray } from "drizzle-orm";
 import type { Route } from "./+types/window-listings";
 import { requireRole } from "~/auth/session.server";
 import { LivePoll } from "~/components/live-poll";
 import { getDb } from "~/db/client";
-import { listings, products, orderingWindows } from "~/db/schema";
+import { listings, products, suppliers, orderingWindows, PRODUCT_UNITS } from "~/db/schema";
 import { newId } from "~/lib/ids";
 import { parseDollarsToCents, formatCents } from "~/lib/money";
+import { createProduct } from "~/services/catalog";
+
+/** Sentinel product-select value that reveals the inline "new product" fields. */
+const NEW_PRODUCT = "__new__";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
@@ -33,7 +38,26 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         ? and(eq(products.isActive, true), notInArray(products.id, listedProductIds))
         : eq(products.isActive, true),
     );
-  return { user, window: win, listings: existing, available };
+
+  // Active suppliers + known units power the inline "new product" fields.
+  const supplierList = await db
+    .select({ id: suppliers.id, name: suppliers.name })
+    .from(suppliers)
+    .where(eq(suppliers.isActive, true))
+    .orderBy(suppliers.name);
+  const unitRows = await db.selectDistinct({ unit: products.unit }).from(products);
+  const unitOptions = Array.from(
+    new Set([...PRODUCT_UNITS, ...unitRows.map((r) => r.unit)].filter(Boolean)),
+  ) as string[];
+
+  return {
+    user,
+    window: win,
+    listings: existing,
+    available,
+    suppliers: supplierList,
+    unitOptions,
+  };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -45,19 +69,41 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const nowDate = new Date();
 
   if (intent === "add") {
-    const productId = String(form.get("productId"));
-    const [p] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId));
-    if (!p) return { error: "Product not found." };
+    const priceStr = String(form.get("price"));
+    const costStr = String(form.get("cost"));
     let price = 0;
     let cost = 0;
     try {
-      price = parseDollarsToCents(String(form.get("price")));
-      cost = parseDollarsToCents(String(form.get("cost")));
+      price = parseDollarsToCents(priceStr);
+      cost = parseDollarsToCents(costStr);
     } catch {
       return { error: "Enter prices like 3.50" };
+    }
+
+    const productId = String(form.get("productId"));
+    let p;
+    if (productId === NEW_PRODUCT) {
+      // Inline-create the product, seeding its catalog defaults from this
+      // week's price/cost, then list it below.
+      const name = String(form.get("newProductName") ?? "").trim();
+      const supplierId = String(form.get("newProductSupplierId") ?? "");
+      const unit = String(form.get("newProductUnit") ?? "").trim() || "each";
+      if (!name || !supplierId)
+        return { error: "New product needs a name and a supplier." };
+      try {
+        p = await createProduct(db, {
+          supplierId,
+          name,
+          unit,
+          defaultRetailDollars: priceStr,
+          defaultWholesaleDollars: costStr,
+        });
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : "Could not create product." };
+      }
+    } else {
+      [p] = await db.select().from(products).where(eq(products.id, productId));
+      if (!p) return { error: "Product not found." };
     }
     const qty = Math.max(0, Number(form.get("quantity") ?? 0));
     await db.insert(listings).values({
@@ -88,7 +134,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function WindowListings({ loaderData }: Route.ComponentProps) {
-  const { window: win, listings, available } = loaderData;
+  const { window: win, listings, available, suppliers, unitOptions } = loaderData;
+  // Default to the inline "new product" flow when everything is already listed.
+  const [productId, setProductId] = useState(
+    available.length ? available[0].id : NEW_PRODUCT,
+  );
+  const creatingProduct = productId === NEW_PRODUCT;
+  const canCreate = suppliers.length > 0;
   return (
     <>
       <LivePoll />
@@ -104,20 +156,29 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
 
       <div className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
         <h3 style={{ margin: "0 0 0.8rem" }}>Add product to this week</h3>
-        {available.length === 0 ? (
-          <p className="kp-muted" style={{ margin: 0 }}>All active products are already listed.</p>
+        {available.length === 0 && !canCreate ? (
+          <p className="kp-muted" style={{ margin: 0 }}>
+            All active products are already listed. Add a supplier to create a new product.
+          </p>
         ) : (
           <Form method="post">
             <input type="hidden" name="intent" value="add" />
             <div className="kp-row">
               <label className="kp-field">
                 <span className="kp-field__label">Product</span>
-                <select className="kp-select" name="productId" required>
+                <select
+                  className="kp-select"
+                  name="productId"
+                  required
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                >
                   {available.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.unit})
                     </option>
                   ))}
+                  {canCreate && <option value={NEW_PRODUCT}>+ New product…</option>}
                 </select>
               </label>
               <label className="kp-field">
@@ -133,6 +194,39 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
                 <input className="kp-input" name="quantity" type="number" min={0} defaultValue={0} />
               </label>
             </div>
+            {creatingProduct && (
+              <div className="kp-row">
+                <label className="kp-field">
+                  <span className="kp-field__label">New product name *</span>
+                  <input className="kp-input" name="newProductName" required />
+                </label>
+                <label className="kp-field">
+                  <span className="kp-field__label">Supplier *</span>
+                  <select className="kp-select" name="newProductSupplierId" required>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="kp-field">
+                  <span className="kp-field__label">Unit</span>
+                  <input
+                    className="kp-input"
+                    name="newProductUnit"
+                    list="listing-unit-options"
+                    defaultValue="each"
+                    autoComplete="off"
+                  />
+                  <datalist id="listing-unit-options">
+                    {unitOptions.map((u) => (
+                      <option key={u} value={u} />
+                    ))}
+                  </datalist>
+                </label>
+              </div>
+            )}
             <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "0.8rem" }}>
               <label style={{ display: "flex", gap: "0.4rem", alignItems: "center", fontSize: "0.88rem" }}>
                 <input type="checkbox" name="staysOpen" /> Stays open after cutoff

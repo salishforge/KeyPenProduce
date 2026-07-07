@@ -5,7 +5,6 @@ import {
   products,
   listings,
   orderingWindows,
-  PRODUCT_UNITS,
   type ProductUnit,
   type WindowStatus,
   type SupplierRow,
@@ -163,8 +162,9 @@ export async function getProduct(
 
 export interface CreateProductInput {
   supplierId: string;
+  /** Free-form; admins can introduce new units (e.g. "pint", "dozen"). */
+  unit?: string;
   name: string;
-  unit?: ProductUnit;
   category?: string | null;
   description?: string | null;
   defaultWholesaleDollars?: string;
@@ -180,8 +180,7 @@ export async function createProduct(
   if (!input.supplierId) throw new Error("Supplier is required.");
   const supplier = await getSupplier(db, input.supplierId);
   if (!supplier) throw new Error("Supplier not found.");
-  const unit = input.unit ?? "each";
-  if (!PRODUCT_UNITS.includes(unit)) throw new Error(`Invalid unit: ${unit}`);
+  const unit = (input.unit ?? "").trim() || "each";
 
   const now = new Date();
   const id = newId("prod");
@@ -192,7 +191,7 @@ export async function createProduct(
     slug: slugify(name),
     description: input.description || null,
     category: input.category || null,
-    unit,
+    unit: unit as ProductUnit,
     defaultWholesaleCents: dollarsToCentsOpt(input.defaultWholesaleDollars) ?? 0,
     defaultRetailCents: dollarsToCentsOpt(input.defaultRetailDollars) ?? 0,
     isActive: true,
@@ -206,7 +205,8 @@ export interface ProductPatch {
   name?: string;
   category?: string | null;
   description?: string | null;
-  unit?: ProductUnit;
+  /** Free-form; admins can introduce new units (e.g. "pint", "dozen"). */
+  unit?: string;
   isActive?: boolean;
   defaultWholesaleDollars?: string;
   defaultRetailDollars?: string;
@@ -225,9 +225,8 @@ export async function updateProduct(
   if (patch.category !== undefined) set.category = patch.category || null;
   if (patch.description !== undefined) set.description = patch.description || null;
   if (patch.unit !== undefined) {
-    if (!PRODUCT_UNITS.includes(patch.unit))
-      throw new Error(`Invalid unit: ${patch.unit}`);
-    set.unit = patch.unit;
+    const unit = patch.unit.trim();
+    if (unit) set.unit = unit;
   }
   if (patch.isActive !== undefined) set.isActive = patch.isActive;
   const wc = dollarsToCentsOpt(patch.defaultWholesaleDollars);
@@ -467,7 +466,7 @@ export async function setListingPrice(
 
 export interface ImportRow {
   name: string;
-  unit?: ProductUnit;
+  unit?: string;
   category?: string | null;
   priceDollars?: string;
   wholesaleDollars?: string;
