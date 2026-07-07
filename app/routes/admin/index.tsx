@@ -20,6 +20,7 @@ import {
   PRODUCT_UNITS,
 } from "~/db/schema";
 import { getActiveWindow } from "~/services/listings";
+import { createProduct } from "~/services/catalog";
 import { commitWindow } from "~/services/commit";
 import { generateSupplierSheets } from "~/services/reconcile";
 import { newId } from "~/lib/ids";
@@ -110,10 +111,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .orderBy(suppliers.name),
   ]);
 
+  // Suggest the built-in units plus any custom unit already saved to a product.
+  const unitRows = await db.selectDistinct({ unit: products.unit }).from(products);
+  const unitOptions = Array.from(
+    new Set([...PRODUCT_UNITS, ...unitRows.map((r) => r.unit)].filter(Boolean)),
+  ) as string[];
+
   const options: ListingFormOptions = {
     produce: activeProducts,
     suppliers: activeSuppliers,
-    units: [...PRODUCT_UNITS],
+    units: unitOptions,
   };
 
   if (!activeWindow) {
@@ -405,6 +412,31 @@ export async function action({ request, context }: Route.ActionArgs) {
         return data({ ok: false, error: "Enter price like 3.50" }, { status: 400 });
       }
 
+      // Inline-create a product when "+ New produce…" was chosen, seeding its
+      // default retail from this listing's price.
+      let resolvedProduceId = produceId;
+      if (produceId === "__new__") {
+        const newName = String(form.get("newProduceName") ?? "").trim();
+        if (!newName)
+          return data({ ok: false, error: "Enter a name for the new produce." }, { status: 400 });
+        if (!supplierId)
+          return data({ ok: false, error: "Pick a supplier for the new produce." }, { status: 400 });
+        try {
+          const created = await createProduct(db, {
+            supplierId,
+            name: newName,
+            unit,
+            defaultRetailDollars: priceStr,
+          });
+          resolvedProduceId = created.id;
+        } catch (err) {
+          return data(
+            { ok: false, error: err instanceof Error ? err.message : "Could not create produce." },
+            { status: 400 },
+          );
+        }
+      }
+
       const nowDate = new Date();
 
       if (id) {
@@ -417,7 +449,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           await db
             .update(listings)
             .set({
-              productId: produceId,
+              productId: resolvedProduceId,
               supplierId,
               priceCents,
               unit,
@@ -432,7 +464,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         const [product] = await db
           .select()
           .from(products)
-          .where(eq(products.id, produceId));
+          .where(eq(products.id, resolvedProduceId));
         if (!product) {
           return data({ ok: false, error: "Product not found" }, { status: 400 });
         }
@@ -444,7 +476,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         await db.insert(listings).values({
           id: newId("lst"),
           windowId: activeWin.id,
-          productId: produceId,
+          productId: resolvedProduceId,
           supplierId,
           displayName: product.name,
           unit,

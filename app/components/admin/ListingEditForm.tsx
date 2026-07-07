@@ -7,11 +7,15 @@
  *
  * Intended location: app/components/admin/ListingEditForm.tsx
  */
+import { useState } from "react";
 import { Form, Link } from "react-router";
 import type {
   EditableListing,
   ListingFormOptions,
 } from "~/lib/admin/view-models";
+
+/** Sentinel produce-select value that reveals the inline "new produce" field. */
+const NEW_PRODUCE = "__new__";
 
 export function ListingEditForm({
   listing,
@@ -23,6 +27,10 @@ export function ListingEditForm({
 }) {
   const isEdit = Boolean(listing);
   const heading = isEdit ? "Edit listing" : "Add listing";
+  const [produceId, setProduceId] = useState(
+    listing?.produceId ?? options.produce[0]?.id ?? NEW_PRODUCE,
+  );
+  const creatingProduce = produceId === NEW_PRODUCE;
 
   return (
     <div className="kp-panel">
@@ -37,12 +45,18 @@ export function ListingEditForm({
         <div className="kp-row">
           <label className="kp-field">
             <span className="kp-field__label">Produce</span>
-            <select className="kp-select" name="produceId" defaultValue={listing?.produceId}>
+            <select
+              className="kp-select"
+              name="produceId"
+              value={produceId}
+              onChange={(e) => setProduceId(e.target.value)}
+            >
               {options.produce.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
+              <option value={NEW_PRODUCE}>+ New produce…</option>
             </select>
           </label>
           <label className="kp-field">
@@ -57,6 +71,15 @@ export function ListingEditForm({
           </label>
         </div>
 
+        {creatingProduce && (
+          <div className="kp-row">
+            <label className="kp-field">
+              <span className="kp-field__label">New produce name</span>
+              <input className="kp-input" name="newProduceName" required />
+            </label>
+          </div>
+        )}
+
         <div className="kp-row">
           <label className="kp-field">
             <span className="kp-field__label">Price</span>
@@ -64,13 +87,18 @@ export function ListingEditForm({
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Unit</span>
-            <select className="kp-select" name="unit" defaultValue={listing?.unit}>
+            <input
+              className="kp-input"
+              name="unit"
+              list="listing-edit-unit-options"
+              defaultValue={listing?.unit ?? "each"}
+              autoComplete="off"
+            />
+            <datalist id="listing-edit-unit-options">
               {options.units.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
+                <option key={u} value={u} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Qty available</span>

@@ -1,5 +1,10 @@
 # Deploying Key Pen Produce to Cloudflare
 
+> **Live:** the core deploy is up at **https://keypenproduce.john-2bb.workers.dev**
+> (D1 migrated, `BETTER_AUTH_SECRET` set, demo catalog seeded, cron trigger active).
+> To finish: sign up at `/signup` with your email, then re-run
+> `npm run seed:remote -- you@example.com` to promote yourself to admin.
+
 Scope of this runbook: **core** — email/password auth + the Workers AI product-admin
 assistant. Stripe, Google/Facebook OAuth, and Resend are optional and safely skipped when
 their secrets are unset; add them later with `wrangler secret put`.
