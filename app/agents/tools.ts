@@ -53,7 +53,11 @@ export function makeCatalogTools(
           name: p.name,
           unit: p.unit,
           category: p.category,
-          supplier: p.supplierName,
+          suppliers: p.suppliers.map((s) => ({
+            supplierId: s.supplierId,
+            name: s.name,
+            wholesale: formatCents(s.wholesaleCents),
+          })),
           defaultRetail: formatCents(p.defaultRetailCents),
         }));
       },
@@ -146,11 +150,11 @@ export function makeCatalogTools(
 
     create_product: tool({
       description:
-        "Create a product. Requires supplierId, name and unit. Find supplierId with list_suppliers first.",
+        "Create a product in the shared catalog. Only name and unit are required. Optionally pass supplierId to link a supplier immediately (with defaultWholesaleDollars as its cost); products can also be catalog-only and linked later via link_supplier.",
       inputSchema: z.object({
-        supplierId: z.string(),
         name: z.string(),
         unit: unitEnum,
+        supplierId: z.string().optional(),
         category: z.string().optional(),
         description: z.string().optional(),
         defaultWholesaleDollars: z.string().optional(),
@@ -209,12 +213,13 @@ export function makeCatalogTools(
 
     add_listing: tool({
       description:
-        "Add a product to a window's availability list with a price, wholesale cost and quantity.",
+        "Add a product to a window's availability with a price and quantity. Requires supplierId — the linked supplier fulfilling it that week (see the product's suppliers via search_products). Wholesale cost defaults to that supplier's linked cost unless overridden.",
       inputSchema: z.object({
         windowId: z.string(),
         productId: z.string(),
+        supplierId: z.string(),
         priceDollars: z.string(),
-        wholesaleCostDollars: z.string(),
+        wholesaleCostDollars: z.string().optional(),
         quantityAvailable: z.number().int().nonnegative(),
         staysOpenAfterCutoff: z.boolean().optional(),
       }),
@@ -222,6 +227,46 @@ export function makeCatalogTools(
         const l = await catalog.addListing(db, args);
         await recordUndo({ action: "add_listing", entityType: "listing", inverse: { type: "withdraw_listing", id: l.id } });
         return { id: l.id, name: l.displayName, price: formatCents(l.priceCents), quantityAvailable: l.quantityAvailable };
+      },
+    }),
+
+    link_supplier: tool({
+      description:
+        "Link a supplier to a product in the shared catalog (or update its wholesale cost). A product can be linked to many suppliers.",
+      inputSchema: z.object({
+        productId: z.string(),
+        supplierId: z.string(),
+        wholesaleDollars: z.string().optional(),
+      }),
+      execute: async ({ productId, supplierId, wholesaleDollars }) => {
+        const existing = await catalog.getSupplierCostCents(db, productId, supplierId);
+        await catalog.linkSupplier(db, productId, supplierId, wholesaleDollars);
+        // Inverse: unlink if it was new, else restore the prior cost.
+        await recordUndo({
+          action: "link_supplier",
+          entityType: "product",
+          inverse:
+            existing === undefined
+              ? { type: "unlink_supplier", productId, supplierId }
+              : { type: "set_supplier_cost", productId, supplierId, cents: existing },
+        });
+        return { ok: true, productId, supplierId };
+      },
+    }),
+
+    unlink_supplier: tool({
+      description: "Remove a supplier from a product in the shared catalog.",
+      inputSchema: z.object({ productId: z.string(), supplierId: z.string() }),
+      execute: async ({ productId, supplierId }) => {
+        const cents = await catalog.getSupplierCostCents(db, productId, supplierId);
+        if (cents === undefined) return { error: "That supplier is not linked to this product." };
+        await catalog.unlinkSupplier(db, productId, supplierId);
+        await recordUndo({
+          action: "unlink_supplier",
+          entityType: "product",
+          inverse: { type: "relink_supplier", productId, supplierId, cents },
+        });
+        return { ok: true, productId, supplierId };
       },
     }),
 

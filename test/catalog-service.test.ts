@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { env } from "cloudflare:test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "~/db/client";
-import { listings, products } from "~/db/schema";
+import { listings, products, productSuppliers } from "~/db/schema";
 import * as catalog from "~/services/catalog";
 
 describe("catalog service", () => {
@@ -21,10 +21,13 @@ describe("catalog service", () => {
     });
     expect(product.slug).toBe("heirloom-tomatoes");
     expect(product.defaultRetailCents).toBe(350);
-    expect(product.defaultWholesaleCents).toBe(200);
+    // The initial supplier is linked with the wholesale cost.
+    const links = await catalog.listProductSuppliers(db, product.id);
+    expect(links.map((l) => l.supplierId)).toContain(supplier.id);
+    expect(links[0].wholesaleCents).toBe(200);
   });
 
-  it("rejects bad money and missing required fields", async () => {
+  it("rejects bad money and unknown suppliers", async () => {
     const db = getDb(env.DB);
     const supplier = await catalog.createSupplier(db, { name: "Bad Money Farm" });
     await expect(
@@ -59,6 +62,7 @@ describe("catalog service", () => {
     const listing = await catalog.addListing(db, {
       windowId: window.id,
       productId: product.id,
+      supplierId: supplier.id,
       priceDollars: "3.00",
       wholesaleCostDollars: "1.50",
       quantityAvailable: 20,
@@ -66,6 +70,7 @@ describe("catalog service", () => {
     expect(listing.displayName).toBe("Rainbow Carrots");
     expect(listing.unit).toBe("bunch");
     expect(listing.priceCents).toBe(300);
+    expect(listing.supplierId).toBe(supplier.id);
     expect(listing.status).toBe("available");
 
     await catalog.setListingQuantity(db, listing.id, 25);
@@ -82,6 +87,71 @@ describe("catalog service", () => {
     expect(withdrawn.status).toBe("withdrawn");
   });
 
+  it("lists a shared product under different suppliers with per-supplier cost", async () => {
+    const db = getDb(env.DB);
+    const farmA = await catalog.createSupplier(db, { name: "Blueberry Hill" });
+    const farmB = await catalog.createSupplier(db, { name: "Spooner Farms" });
+    const product = await catalog.createProduct(db, {
+      name: "Shared Blueberries",
+      unit: "pint",
+      defaultRetailDollars: "4.00",
+    });
+    // Same product, two suppliers, different wholesale costs.
+    await catalog.linkSupplier(db, product.id, farmA.id, "2.00");
+    await catalog.linkSupplier(db, product.id, farmB.id, "2.75");
+    const links = await catalog.listProductSuppliers(db, product.id);
+    expect(links.length).toBe(2);
+
+    const window = await catalog.createWindow(db, {
+      label: "Berry Wk",
+      opensAt: new Date(Date.now() - 1000),
+      closesAt: new Date(Date.now() + 3_600_000),
+      pickupDate: new Date(Date.now() + 86_400_000),
+    });
+    await catalog.openWindow(db, window.id);
+
+    // Listing under Farm A defaults the cost from that supplier's link (2.00).
+    const listing = await catalog.addListing(db, {
+      windowId: window.id,
+      productId: product.id,
+      supplierId: farmA.id,
+      priceDollars: "4.00",
+      quantityAvailable: 10,
+    });
+    expect(listing.supplierId).toBe(farmA.id);
+    expect(listing.wholesaleCostCents).toBe(200);
+
+    // A product is listed at most once per window (unique window+product).
+    await expect(
+      catalog.addListing(db, {
+        windowId: window.id,
+        productId: product.id,
+        supplierId: farmB.id,
+        priceDollars: "4.00",
+        quantityAvailable: 5,
+      }),
+    ).rejects.toThrow();
+
+    // Listing an unlinked supplier is rejected.
+    const other = await catalog.createSupplier(db, { name: "Unlinked Farm" });
+    const window2 = await catalog.createWindow(db, {
+      label: "Berry Wk 2",
+      opensAt: new Date(Date.now() - 1000),
+      closesAt: new Date(Date.now() + 3_600_000),
+      pickupDate: new Date(Date.now() + 86_400_000),
+    });
+    await catalog.openWindow(db, window2.id);
+    await expect(
+      catalog.addListing(db, {
+        windowId: window2.id,
+        productId: product.id,
+        supplierId: other.id,
+        priceDollars: "4.00",
+        quantityAvailable: 5,
+      }),
+    ).rejects.toThrow(/not linked/);
+  });
+
   it("closeWindow closes non-stay-open listings", async () => {
     const db = getDb(env.DB);
     const supplier = await catalog.createSupplier(db, { name: "Close Farm" });
@@ -94,8 +164,8 @@ describe("catalog service", () => {
       pickupDate: new Date(Date.now() + 86_400_000),
     });
     await catalog.openWindow(db, window.id);
-    const normal = await catalog.addListing(db, { windowId: window.id, productId: p1.id, priceDollars: "2", wholesaleCostDollars: "1", quantityAvailable: 5 });
-    const stayOpen = await catalog.addListing(db, { windowId: window.id, productId: p2.id, priceDollars: "6", wholesaleCostDollars: "3", quantityAvailable: 5, staysOpenAfterCutoff: true });
+    const normal = await catalog.addListing(db, { windowId: window.id, productId: p1.id, supplierId: supplier.id, priceDollars: "2", wholesaleCostDollars: "1", quantityAvailable: 5 });
+    const stayOpen = await catalog.addListing(db, { windowId: window.id, productId: p2.id, supplierId: supplier.id, priceDollars: "6", wholesaleCostDollars: "3", quantityAvailable: 5, staysOpenAfterCutoff: true });
 
     await catalog.closeWindow(db, window.id);
     const [closedListing] = await db.select().from(listings).where(eq(listings.id, normal.id));
@@ -104,7 +174,7 @@ describe("catalog service", () => {
     expect(openListing.status).toBe("available"); // stays open after cutoff
   });
 
-  it("bulkImport upserts by (supplier, slug) and reports counts", async () => {
+  it("bulkImport upserts by global slug, linking the import's supplier", async () => {
     const db = getDb(env.DB);
     const supplier = await catalog.createSupplier(db, { name: "Bulk Farm" });
     const first = await catalog.bulkImport(db, {
@@ -126,9 +196,19 @@ describe("catalog service", () => {
     expect(second.updated).toBe(1);
     expect(second.created).toBe(0);
 
-    const all = await db.select().from(products).where(eq(products.supplierId, supplier.id));
-    const zukes = all.filter((p) => p.slug === "zucchini");
+    const zukes = await db.select().from(products).where(eq(products.slug, "zucchini"));
     expect(zukes.length).toBe(1);
     expect(zukes[0].defaultRetailCents).toBe(225);
+    // The import's supplier is linked with the imported cost.
+    const [link] = await db
+      .select()
+      .from(productSuppliers)
+      .where(
+        and(
+          eq(productSuppliers.productId, zukes[0].id),
+          eq(productSuppliers.supplierId, supplier.id),
+        ),
+      );
+    expect(link.wholesaleCostCents).toBe(100);
   });
 });

@@ -51,11 +51,20 @@ export interface WindowView {
   demand: DemandItem[];
 }
 
+/** One supplier that can fulfill a product, for the listing supplier picker. */
+export interface ProduceSupplierOption {
+  supplierId: string;
+  name: string;
+  wholesaleCents: number;
+}
+
 /** Options that populate the add/edit listing form selects. */
 export interface ListingFormOptions {
   produce: { id: string; name: string }[];
   suppliers: { id: string; name: string }[];
   units: string[];
+  /** productId → the suppliers linked to it (drives the supplier picker). */
+  productSuppliers: Record<string, ProduceSupplierOption[]>;
 }
 
 export interface EditableListing {

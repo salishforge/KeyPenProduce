@@ -2,6 +2,7 @@ import { getDb } from "~/db/client";
 import {
   suppliers,
   products,
+  productSuppliers,
   orderingWindows,
   listings,
   user as userTable,
@@ -28,12 +29,20 @@ export async function seedListing(
   });
   await db.insert(products).values({
     id: productId,
-    supplierId,
     name: "Heirloom Tomatoes",
     slug: "heirloom-tomatoes",
     unit: "lb",
     defaultWholesaleCents: 0,
     defaultRetailCents: 0,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(productSuppliers).values({
+    id: newId("ps"),
+    productId,
+    supplierId,
+    wholesaleCostCents: opts.costCents ?? 200,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -88,12 +97,20 @@ export async function addListingToWindow(
   });
   await db.insert(products).values({
     id: productId,
-    supplierId,
     name: "Basil",
     slug: `basil-${listingId}`,
     unit: "bunch",
     defaultWholesaleCents: 0,
     defaultRetailCents: 0,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(productSuppliers).values({
+    id: newId("ps"),
+    productId,
+    supplierId,
+    wholesaleCostCents: opts.costCents ?? 150,
     isActive: true,
     createdAt: now,
     updatedAt: now,

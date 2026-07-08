@@ -3,6 +3,7 @@ import type { DB } from "~/db/client";
 import {
   suppliers,
   products,
+  productSuppliers,
   listings,
   orderingWindows,
   type ProductUnit,
@@ -116,17 +117,58 @@ export async function updateSupplier(
 /* Products                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export interface ProductWithSupplier extends ProductRow {
-  supplierName: string;
+/** One supplier that can provide a product, with its per-supplier cost. */
+export interface ProductSupplierLink {
+  linkId: string;
+  supplierId: string;
+  name: string;
+  wholesaleCents: number;
+  isActive: boolean;
 }
 
-export async function listProducts(db: DB): Promise<ProductWithSupplier[]> {
+export interface ProductWithSuppliers extends ProductRow {
+  /** Every supplier linked to this product (empty for catalog-only products). */
+  suppliers: ProductSupplierLink[];
+}
+
+/** Fetch the supplier links for a set of products, grouped by productId. */
+async function suppliersByProduct(
+  db: DB,
+  productIds: string[],
+): Promise<Map<string, ProductSupplierLink[]>> {
+  const map = new Map<string, ProductSupplierLink[]>();
+  if (productIds.length === 0) return map;
   const rows = await db
-    .select({ product: products, supplierName: suppliers.name })
-    .from(products)
-    .innerJoin(suppliers, eq(suppliers.id, products.supplierId))
-    .orderBy(desc(products.createdAt));
-  return rows.map((r) => ({ ...r.product, supplierName: r.supplierName }));
+    .select({
+      linkId: productSuppliers.id,
+      productId: productSuppliers.productId,
+      supplierId: productSuppliers.supplierId,
+      name: suppliers.name,
+      wholesaleCents: productSuppliers.wholesaleCostCents,
+      isActive: productSuppliers.isActive,
+    })
+    .from(productSuppliers)
+    .innerJoin(suppliers, eq(suppliers.id, productSuppliers.supplierId))
+    .where(inArray(productSuppliers.productId, productIds))
+    .orderBy(suppliers.name);
+  for (const r of rows) {
+    const list = map.get(r.productId) ?? [];
+    list.push({
+      linkId: r.linkId,
+      supplierId: r.supplierId,
+      name: r.name,
+      wholesaleCents: r.wholesaleCents,
+      isActive: r.isActive,
+    });
+    map.set(r.productId, list);
+  }
+  return map;
+}
+
+export async function listProducts(db: DB): Promise<ProductWithSuppliers[]> {
+  const rows = await db.select().from(products).orderBy(desc(products.createdAt));
+  const byProduct = await suppliersByProduct(db, rows.map((p) => p.id));
+  return rows.map((p) => ({ ...p, suppliers: byProduct.get(p.id) ?? [] }));
 }
 
 export async function searchProducts(
@@ -137,19 +179,26 @@ export async function searchProducts(
     activeOnly?: boolean;
     limit?: number;
   } = {},
-): Promise<ProductWithSupplier[]> {
+): Promise<ProductWithSuppliers[]> {
   const conds = [];
   if (opts.query) conds.push(like(products.name, `%${opts.query}%`));
-  if (opts.supplierId) conds.push(eq(products.supplierId, opts.supplierId));
   if (opts.activeOnly) conds.push(eq(products.isActive, true));
+  // Filter to products linked to a given supplier via the join table.
+  if (opts.supplierId) {
+    const linked = db
+      .select({ productId: productSuppliers.productId })
+      .from(productSuppliers)
+      .where(eq(productSuppliers.supplierId, opts.supplierId));
+    conds.push(inArray(products.id, linked));
+  }
   const rows = await db
-    .select({ product: products, supplierName: suppliers.name })
+    .select()
     .from(products)
-    .innerJoin(suppliers, eq(suppliers.id, products.supplierId))
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(desc(products.createdAt))
     .limit(opts.limit ?? 50);
-  return rows.map((r) => ({ ...r.product, supplierName: r.supplierName }));
+  const byProduct = await suppliersByProduct(db, rows.map((p) => p.id));
+  return rows.map((p) => ({ ...p, suppliers: byProduct.get(p.id) ?? [] }));
 }
 
 export async function getProduct(
@@ -161,12 +210,14 @@ export async function getProduct(
 }
 
 export interface CreateProductInput {
-  supplierId: string;
+  /** Optional: link this supplier immediately (products may also be catalog-only). */
+  supplierId?: string;
   /** Free-form; admins can introduce new units (e.g. "pint", "dozen"). */
   unit?: string;
   name: string;
   category?: string | null;
   description?: string | null;
+  /** Doubles as the initial linked supplier's wholesale cost when supplierId is set. */
   defaultWholesaleDollars?: string;
   defaultRetailDollars?: string;
 }
@@ -177,18 +228,21 @@ export async function createProduct(
 ): Promise<ProductRow> {
   const name = input.name.trim();
   if (!name) throw new Error("Product name is required.");
-  if (!input.supplierId) throw new Error("Supplier is required.");
-  const supplier = await getSupplier(db, input.supplierId);
-  if (!supplier) throw new Error("Supplier not found.");
   const unit = (input.unit ?? "").trim() || "each";
+  const slug = slugify(name);
+  // Product slug is globally unique now (shared catalog).
+  const [dup] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.slug, slug));
+  if (dup) throw new Error(`A product named "${name}" already exists.`);
 
   const now = new Date();
   const id = newId("prod");
   await db.insert(products).values({
     id,
-    supplierId: input.supplierId,
     name,
-    slug: slugify(name),
+    slug,
     description: input.description || null,
     category: input.category || null,
     unit: unit as ProductUnit,
@@ -198,7 +252,117 @@ export async function createProduct(
     createdAt: now,
     updatedAt: now,
   });
+  // Optionally link an initial supplier (with its wholesale cost).
+  if (input.supplierId) {
+    await linkSupplier(db, id, input.supplierId, input.defaultWholesaleDollars);
+  }
   return (await getProduct(db, id))!;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Product ↔ supplier links (the shared-catalog sourcing table)               */
+/* -------------------------------------------------------------------------- */
+
+export async function listProductSuppliers(
+  db: DB,
+  productId: string,
+): Promise<ProductSupplierLink[]> {
+  return (await suppliersByProduct(db, [productId])).get(productId) ?? [];
+}
+
+/** Link a supplier to a product (idempotent — updates the cost if it exists). */
+export async function linkSupplier(
+  db: DB,
+  productId: string,
+  supplierId: string,
+  wholesaleDollars?: string,
+): Promise<void> {
+  const supplier = await getSupplier(db, supplierId);
+  if (!supplier) throw new Error("Supplier not found.");
+  const product = await getProduct(db, productId);
+  if (!product) throw new Error("Product not found.");
+  // undefined => "no cost given" (don't overwrite an existing cost on re-link).
+  const cost = dollarsToCentsOpt(wholesaleDollars);
+  const now = new Date();
+  const [existing] = await db
+    .select({ id: productSuppliers.id })
+    .from(productSuppliers)
+    .where(
+      and(
+        eq(productSuppliers.productId, productId),
+        eq(productSuppliers.supplierId, supplierId),
+      ),
+    );
+  if (existing) {
+    const set: Record<string, unknown> = { isActive: true, updatedAt: now };
+    if (cost !== undefined) set.wholesaleCostCents = cost;
+    await db.update(productSuppliers).set(set).where(eq(productSuppliers.id, existing.id)).run();
+    return;
+  }
+  await db.insert(productSuppliers).values({
+    id: newId("ps"),
+    productId,
+    supplierId,
+    wholesaleCostCents: cost ?? 0,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+export async function unlinkSupplier(
+  db: DB,
+  productId: string,
+  supplierId: string,
+): Promise<void> {
+  await db
+    .delete(productSuppliers)
+    .where(
+      and(
+        eq(productSuppliers.productId, productId),
+        eq(productSuppliers.supplierId, supplierId),
+      ),
+    )
+    .run();
+}
+
+export async function setSupplierCost(
+  db: DB,
+  productId: string,
+  supplierId: string,
+  wholesaleDollars: string,
+): Promise<void> {
+  await db
+    .update(productSuppliers)
+    .set({
+      wholesaleCostCents: parseDollarsToCents(wholesaleDollars),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(productSuppliers.productId, productId),
+        eq(productSuppliers.supplierId, supplierId),
+      ),
+    )
+    .run();
+}
+
+/** The wholesale cost a given supplier charges for a product, if linked. */
+export async function getSupplierCostCents(
+  db: DB,
+  productId: string,
+  supplierId: string,
+): Promise<number | undefined> {
+  const [row] = await db
+    .select({ cents: productSuppliers.wholesaleCostCents })
+    .from(productSuppliers)
+    .where(
+      and(
+        eq(productSuppliers.productId, productId),
+        eq(productSuppliers.supplierId, supplierId),
+      ),
+    );
+  return row?.cents;
 }
 
 export interface ProductPatch {
@@ -390,8 +554,11 @@ export async function getUnlistedProducts(
 export interface AddListingInput {
   windowId: string;
   productId: string;
+  /** Which linked supplier fulfills this listing (drives pickup sheets). */
+  supplierId: string;
   priceDollars: string;
-  wholesaleCostDollars: string;
+  /** Optional — defaults to the product↔supplier link's wholesale cost. */
+  wholesaleCostDollars?: string;
   quantityAvailable: number;
   staysOpenAfterCutoff?: boolean;
 }
@@ -402,8 +569,15 @@ export async function addListing(
 ): Promise<ListingRow> {
   const product = await getProduct(db, input.productId);
   if (!product) throw new Error("Product not found.");
+  if (!input.supplierId) throw new Error("A supplier is required to list a product.");
+  const linkCost = await getSupplierCostCents(db, product.id, input.supplierId);
+  if (linkCost === undefined) {
+    throw new Error("That supplier is not linked to this product.");
+  }
   const priceCents = parseDollarsToCents(input.priceDollars);
-  const wholesaleCostCents = parseDollarsToCents(input.wholesaleCostDollars);
+  // Default the wholesale cost from the chosen supplier's link when omitted.
+  const wholesaleCostCents =
+    dollarsToCentsOpt(input.wholesaleCostDollars) ?? linkCost;
   const qty = Math.max(0, Math.floor(input.quantityAvailable));
   const now = new Date();
   const id = newId("lst");
@@ -411,7 +585,7 @@ export async function addListing(
     id,
     windowId: input.windowId,
     productId: product.id,
-    supplierId: product.supplierId,
+    supplierId: input.supplierId,
     displayName: product.name,
     unit: product.unit,
     priceCents,
@@ -510,12 +684,11 @@ export async function bulkImport(
     }
     const slug = slugify(name);
     try {
+      // Shared catalog: match by global slug regardless of supplier.
       const [existing] = await db
         .select()
         .from(products)
-        .where(
-          and(eq(products.supplierId, input.supplierId), eq(products.slug, slug)),
-        );
+        .where(eq(products.slug, slug));
       let product: ProductRow;
       if (existing) {
         product = await updateProduct(db, existing.id, {
@@ -527,7 +700,6 @@ export async function bulkImport(
         result.updated++;
       } else {
         product = await createProduct(db, {
-          supplierId: input.supplierId,
           name,
           unit: row.unit ?? "each",
           category: row.category ?? null,
@@ -538,6 +710,8 @@ export async function bulkImport(
         result.createdProductIds.push(product.id);
       }
       result.productIds.push(product.id);
+      // Ensure this import's supplier is linked, carrying the imported cost.
+      await linkSupplier(db, product.id, input.supplierId, row.wholesaleDollars);
 
       if (input.windowId && row.priceDollars) {
         const [existingListing] = await db
@@ -561,6 +735,7 @@ export async function bulkImport(
           const listing = await addListing(db, {
             windowId: input.windowId,
             productId: product.id,
+            supplierId: input.supplierId,
             priceDollars: row.priceDollars,
             wholesaleCostDollars: row.wholesaleDollars ?? row.priceDollars,
             quantityAvailable: row.quantityAvailable ?? 0,
