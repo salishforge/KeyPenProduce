@@ -8,7 +8,7 @@
  * the order is submitted from /cart, which calls placeOrder (all-or-nothing).
  */
 import type { Route } from "./+types/index";
-import { redirect } from "react-router";
+import { data, redirect } from "react-router";
 import { inArray } from "drizzle-orm";
 
 import { requireUser } from "~/auth/session.server";
@@ -35,7 +35,9 @@ import { ShopHeader } from "~/components/shop/ShopHeader";
 import { WeekHero } from "~/components/shop/WeekHero";
 import { ListingCard } from "~/components/shop/ListingCard";
 import { Basket } from "~/components/shop/Basket";
+import { CartBar } from "~/components/shop/CartBar";
 import { Rhythm } from "~/components/shop/Rhythm";
+import { LivePoll } from "~/components/live-poll";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -203,26 +205,32 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (intent === "add") {
     const listingId = String(form.get("listingId") ?? "");
     const qty = Math.floor(Number(form.get("qty") ?? 0));
-    if (!listingId || qty <= 0) return redirect("/shop");
+    if (!listingId || qty <= 0) return data({ ok: false });
 
     const db = getDb(env.DB);
     const window = await getActiveWindow(db);
-    if (!window) return redirect("/shop");
+    if (!window) return data({ ok: false });
 
     const cart = await readCart(request);
     const next = addToCart(cart, window.id, listingId, qty);
-    return redirect("/shop", {
-      headers: { "Set-Cookie": await serializeCart(next) },
-    });
+    // Return data (not a redirect) so a fetcher submit updates the basket in
+    // place via loader revalidation — no full-page reload. Non-JS clients get
+    // the re-rendered /shop route with the new Set-Cookie applied.
+    return data(
+      { ok: true },
+      { headers: { "Set-Cookie": await serializeCart(next) } },
+    );
   }
 
-  return redirect("/shop");
+  return data({ ok: false });
 }
 
 export default function ShopRoute({ loaderData }: Route.ComponentProps) {
   const shop = loaderData;
   return (
     <>
+      {/* Live-refresh remaining stock while the customer browses. */}
+      <LivePoll />
       <ShopHeader basketCount={shop.basket.count} />
 
       <WeekHero week={shop.week} />
@@ -244,6 +252,14 @@ export default function ShopRoute({ loaderData }: Route.ComponentProps) {
       </div>
 
       <Rhythm />
+
+      {/* Thumb-reachable basket bar (mobile); desktop uses the sticky sidebar. */}
+      <CartBar
+        count={shop.basket.count}
+        totalLabel={shop.basket.subtotalLabel}
+        to="/cart"
+        label="View basket"
+      />
     </>
   );
 }

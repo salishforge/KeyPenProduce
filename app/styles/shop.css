@@ -3,15 +3,19 @@
    Consumes tokens + primitives from theme.css. Import after theme.css.
    =========================================================================== */
 
-/* Header -------------------------------------------------------------------- */
+/* Header — mobile-first: wordmark + basket pill + hamburger; inline nav ≥48rem */
 .kp-shop-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem clamp(1rem, 4vw, 2.5rem);
-  border-bottom: 1px solid var(--kp-rule);
   flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding: 0.8rem clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--kp-rule);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--kp-paper);
 }
 .kp-wordmark {
   display: flex;
@@ -19,27 +23,87 @@
   gap: 0.55rem;
   font-family: var(--kp-font-display);
   font-weight: 700;
-  font-size: 1.18rem;
+  font-size: 1.08rem;
   letter-spacing: -0.01em;
   color: var(--kp-ink);
   text-decoration: none;
 }
 .kp-wordmark svg { flex: none; }
-.kp-shop-nav { display: flex; align-items: center; gap: 1.3rem; font-size: 0.9rem; }
-.kp-shop-nav a { text-decoration: none; color: var(--kp-ink-soft); font-weight: 500; }
-.kp-shop-nav a:hover { color: var(--kp-tide); }
+.kp-shop-top__right { display: flex; align-items: center; gap: 0.5rem; }
+
 .kp-cart-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   border: 1px solid var(--kp-tide-soft);
   color: var(--kp-tide);
   border-radius: 999px;
-  padding: 0.34rem 0.8rem;
-  font-weight: 600;
-  font-size: 0.86rem;
+  padding: 0.5rem 0.9rem;
+  min-height: 2.5rem;
+  font-weight: 700;
+  font-size: 0.92rem;
   text-decoration: none;
 }
+.kp-cart-pill svg { flex: none; }
+
+/* Hamburger — mobile only */
+.kp-hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius-sm);
+  background: var(--kp-field);
+  color: var(--kp-ink);
+  cursor: pointer;
+}
+.kp-hamburger:focus-visible { outline: 2px solid var(--kp-tide); outline-offset: 2px; }
+
+/* Inline nav — desktop only (hidden on mobile) */
+.kp-shop-nav { display: none; align-items: center; gap: 1.3rem; font-size: 0.95rem; }
+.kp-shop-nav a { text-decoration: none; color: var(--kp-ink-soft); font-weight: 500; }
+.kp-shop-nav a:hover { color: var(--kp-tide); }
+
+/* Mobile dropdown menu (toggled by the hamburger) */
+.kp-navmenu {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: clamp(1rem, 4vw, 2.5rem);
+  left: clamp(1rem, 4vw, 2.5rem);
+  z-index: 60;
+  background: var(--kp-paper-raised);
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius);
+  box-shadow: 0 14px 34px rgba(22, 32, 28, 0.16);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.kp-navmenu a,
+.kp-navmenu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--kp-radius-sm);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--kp-ink);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.kp-navmenu a:hover,
+.kp-navmenu button:hover { background: var(--kp-note-bg); color: var(--kp-tide); }
+.kp-navmenu form { width: 100%; }
+.kp-navmenu form button { width: 100%; }
 
 /* Hero ---------------------------------------------------------------------- */
 .kp-hero { padding: clamp(1.4rem, 4vw, 2.4rem) clamp(1rem, 4vw, 2.5rem) 0; }
@@ -81,9 +145,9 @@
 /* Main grid ----------------------------------------------------------------- */
 .kp-shop-main {
   display: grid;
-  grid-template-columns: 1fr 19rem;
+  grid-template-columns: 1fr; /* mobile: single column, basket sidebar hidden */
   gap: 2rem;
-  padding: 1.8rem clamp(1rem, 4vw, 2.5rem) 3rem;
+  padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 2rem;
   align-items: start;
 }
 .kp-board-head {
@@ -95,7 +159,7 @@
   flex-wrap: wrap;
 }
 .kp-board-head h2 { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
-.kp-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.kp-board { display: grid; grid-template-columns: 1fr; gap: 0.9rem; } /* mobile: 1 col */
 
 /* Listing card -------------------------------------------------------------- */
 .kp-listing {
@@ -128,18 +192,25 @@
 .kp-listing__act {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.6rem;
   margin-top: 0.9rem;
   padding-top: 0.85rem;
   border-top: 1px solid var(--kp-rule);
 }
+.kp-listing__reserve {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+.kp-listing__reserve-btn { flex: 1 1 auto; } /* big, thumb-friendly Reserve */
 .kp-listing__gone { font-family: var(--kp-font-accent); font-style: italic; font-size: 0.82rem; color: var(--kp-ink-soft); }
 
-/* Basket -------------------------------------------------------------------- */
+/* Basket — desktop sidebar only; on mobile the sticky CartBar replaces it. */
 .kp-basket {
+  display: none;
   position: sticky;
-  top: 4rem;
+  top: 4.5rem;
   background: var(--kp-paper-raised);
   border: 1px solid var(--kp-rule);
   border-radius: var(--kp-radius);
@@ -164,30 +235,42 @@
 /* Rhythm explainer ---------------------------------------------------------- */
 .kp-rhythm {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr; /* mobile: stacked */
   gap: 1rem;
-  padding: 0 clamp(1rem, 4vw, 2.5rem) 3rem;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 7rem; /* clear the sticky cart bar */
 }
 .kp-rhythm__step { border-top: 2px solid var(--kp-tide); padding-top: 0.7rem; }
 .kp-rhythm__n { font-family: var(--kp-font-display); font-weight: 700; color: var(--kp-tide-soft); font-size: 0.9rem; }
 .kp-rhythm__t { font-weight: 600; margin: 0.1rem 0 0.2rem; }
 .kp-rhythm__d { font-size: 0.85rem; color: var(--kp-ink-soft); }
 
-/* Responsive ---------------------------------------------------------------- */
-@media (max-width: 60rem) {
-  .kp-shop-main { grid-template-columns: 1fr; }
-  .kp-basket { position: static; }
+/* Responsive (mobile-first: enhance upward) --------------------------------- */
+/* Roomy phones / small tablets: two produce columns. */
+@media (min-width: 34rem) {
+  .kp-board { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }
-@media (max-width: 40rem) {
-  .kp-board { grid-template-columns: 1fr; }
-  .kp-rhythm { grid-template-columns: 1fr; }
+/* Tablet: inline header nav, three-up rhythm. */
+@media (min-width: 48rem) {
+  .kp-hamburger { display: none; }
+  .kp-navmenu { display: none !important; }
+  .kp-shop-nav { display: flex; }
+  .kp-rhythm { grid-template-columns: repeat(3, 1fr); }
+  .kp-wordmark { font-size: 1.18rem; }
+}
+/* Desktop: bring back the sticky basket sidebar; drop the mobile cart bar. */
+@media (min-width: 60rem) {
+  .kp-shop-main { grid-template-columns: 1fr 19rem; }
+  .kp-basket { display: block; }
+  .kp-cartbar { display: none; }
+  .kp-rhythm { padding-bottom: 3rem; } /* no sticky bar to clear */
+  .kp-cart { padding-bottom: 3rem; }
 }
 
 /* Cart — review + reserve --------------------------------------------------- */
 .kp-cart {
   max-width: 46rem;
   margin: 0 auto;
-  padding: 1.8rem clamp(1rem, 4vw, 2.5rem) 3rem;
+  padding: 1.4rem clamp(1rem, 4vw, 2.5rem) 8rem; /* bottom room for sticky bar */
 }
 .kp-cart h1 {
   font-family: var(--kp-font-display);
@@ -195,32 +278,144 @@
   font-size: 1.5rem;
   margin: 0 0 1.2rem;
 }
+.kp-cart__card { padding: 0.2rem 1rem; margin-bottom: 1rem; }
 .kp-cart__line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 1rem;
-  padding: 0.85rem 0;
+  gap: 0.4rem 0.9rem;
+  padding: 0.9rem 0;
   border-bottom: 1px solid var(--kp-rule-soft);
 }
-.kp-cart__info { flex: 1 1 12rem; }
+.kp-cart__line:last-child { border-bottom: 0; }
+.kp-cart__info { flex: 1 1 60%; min-width: 0; }
 .kp-cart__name { font-weight: 600; }
-.kp-cart__qty { display: flex; align-items: center; gap: 0.4rem; }
-.kp-input--qty { width: 4rem; }
-.kp-cart__amt { font-weight: 700; min-width: 4.5rem; text-align: right; }
+.kp-cart__amt { font-weight: 700; margin-left: auto; font-variant-numeric: tabular-nums; }
+.kp-cart__controls {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.kp-cart__trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--kp-rule);
+  background: transparent;
+  color: var(--kp-ink-soft);
+  cursor: pointer;
+  flex: none;
+}
+.kp-cart__trash:hover { color: var(--kp-tomato); border-color: #d9b3ad; background: var(--kp-critical-bg); }
 .kp-cart__sum {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 1rem 0 0.2rem;
+  padding: 1rem 0.2rem 0.4rem;
   font-family: var(--kp-font-display);
 }
 .kp-cart__sum b { font-size: 1.25rem; }
 .kp-cart__fineprint {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--kp-ink-soft);
   margin: 0.4rem 0 0.9rem;
 }
+/* The in-card place-order button is desktop-only; mobile uses the sticky bar. */
+.kp-cart__submit-desktop { display: none; width: 100%; }
+@media (min-width: 60rem) {
+  .kp-cart__submit-desktop { display: inline-flex; }
+}
+
+/* Sticky bottom action bar (mobile view-basket / place-order) --------------- */
+.kp-cartbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 55;
+  padding: 0.6rem clamp(0.8rem, 4vw, 1.2rem);
+  padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--kp-paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--kp-rule);
+}
+.kp-cartbar__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3.25rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  background: var(--kp-tide);
+  color: #f2f5ef;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.kp-cartbar__btn:hover { background: var(--kp-tide-deep); }
+.kp-cartbar__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.kp-cartbar__btn:focus-visible { outline: 2px solid var(--kp-ink); outline-offset: 2px; }
+.kp-cartbar__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.kp-cartbar__label { display: flex; flex-direction: column; line-height: 1.1; text-align: left; }
+.kp-cartbar__sub { font-size: 0.72rem; font-weight: 500; opacity: 0.85; }
+.kp-cartbar__total { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* Order history + invoice — card lists (replace clipped tables) ------------- */
+.kp-orderlist { display: flex; flex-direction: column; gap: 0.8rem; }
+.kp-ordercard {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: var(--kp-paper-raised);
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius);
+  text-decoration: none;
+  color: inherit;
+}
+.kp-ordercard:hover { border-color: var(--kp-tide-soft); }
+.kp-ordercard__main { flex: 1 1 auto; min-width: 0; }
+.kp-ordercard__title { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.02rem; }
+.kp-ordercard__meta { font-size: 0.85rem; color: var(--kp-ink-soft); margin-top: 0.1rem; }
+.kp-ordercard__badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+.kp-ordercard__right { display: flex; align-items: center; gap: 0.6rem; flex: none; }
+.kp-ordercard__total { font-weight: 700; font-variant-numeric: tabular-nums; }
+.kp-ordercard__chev { color: var(--kp-ink-soft); flex: none; }
+
+.kp-orderlines { display: flex; flex-direction: column; }
+.kp-orderline {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--kp-rule-soft);
+}
+.kp-orderline:last-child { border-bottom: 0; }
+.kp-orderline__name { flex: 1 1 55%; min-width: 0; font-weight: 600; }
+.kp-orderline__qty { font-size: 0.88rem; color: var(--kp-ink-soft); }
+.kp-orderline__amt { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kp-orderline__act { flex: 1 1 100%; }
 
 /* Auth — centered login / signup / password pages --------------------------- */
 .kp-auth {

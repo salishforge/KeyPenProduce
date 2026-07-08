@@ -14,10 +14,25 @@ export interface StepperProps {
   max?: number;
   /** Accessible label prefix, e.g. the product name. */
   label?: string;
+  /** Called with the new value whenever it changes (e.g. to auto-save). */
+  onChange?: (value: number) => void;
 }
 
-export function Stepper({ name, defaultValue = 0, min = 0, max = 99, label }: StepperProps) {
+export function Stepper({
+  name,
+  defaultValue = 0,
+  min = 0,
+  max = 99,
+  label,
+  onChange,
+}: StepperProps) {
   const [value, setValue] = useState(clamp(defaultValue, min, max));
+
+  const set = (next: number) => {
+    const v = clamp(next, min, max);
+    setValue(v);
+    onChange?.(v);
+  };
 
   return (
     <span className="kp-stepper">
@@ -25,7 +40,7 @@ export function Stepper({ name, defaultValue = 0, min = 0, max = 99, label }: St
         type="button"
         aria-label={label ? `Decrease ${label}` : "Decrease"}
         disabled={value <= min}
-        onClick={() => setValue((v) => clamp(v - 1, min, max))}
+        onClick={() => set(value - 1)}
       >
         –
       </button>
@@ -36,7 +51,7 @@ export function Stepper({ name, defaultValue = 0, min = 0, max = 99, label }: St
         type="button"
         aria-label={label ? `Increase ${label}` : "Increase"}
         disabled={value >= max}
-        onClick={() => setValue((v) => clamp(v + 1, min, max))}
+        onClick={() => set(value + 1)}
       >
         +
       </button>
