@@ -34,6 +34,8 @@ export interface ListingView {
   season?: SeasonBadge;
   /** Crop slug that resolves a preservation panel, when one exists. */
   preservationSlug?: string;
+  /** Product photo URL (served from R2 via /img/:key), when one is set. */
+  imageUrl?: string;
 }
 
 export interface BasketLineView {

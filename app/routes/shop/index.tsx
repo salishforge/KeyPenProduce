@@ -123,16 +123,24 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const productIds = [...new Set(rows.map((r) => r.productId))];
   const prodRows = productIds.length
     ? await db
-        .select({ id: products.id, preservationSlug: products.preservationSlug })
+        .select({
+          id: products.id,
+          preservationSlug: products.preservationSlug,
+          imageKey: products.imageKey,
+        })
         .from(products)
         .where(inArray(products.id, productIds))
     : [];
   const slugByProduct = new Map(
     prodRows.map((p) => [p.id, p.preservationSlug] as const),
   );
+  const imageByProduct = new Map(
+    prodRows.map((p) => [p.id, p.imageKey] as const),
+  );
 
   const listings: ListingView[] = rows.map((row) => {
     const slug = slugByProduct.get(row.productId) ?? undefined;
+    const imageKey = imageByProduct.get(row.productId) ?? undefined;
     const remaining = Math.max(0, row.quantityRemaining);
     const soldOut = remaining <= 0;
     const { stockLabel, stockTone } = describeStock(remaining, soldOut);
@@ -150,6 +158,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       maxQty: row.orderable ? remaining : 0,
       season: slug && CROPS[slug] ? { label: "In season" } : undefined,
       preservationSlug: slug,
+      imageUrl: imageKey ? `/img/${imageKey}` : undefined,
     };
   });
 
