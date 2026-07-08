@@ -114,54 +114,41 @@ export default function OrderDetail({ loaderData }: Route.ComponentProps) {
           )}
         </div>
 
-        <div className="kp-ledger-wrap" style={{ marginBottom: "1rem" }}>
-          <div className="kp-ledger-head">
-            <h3>Line items</h3>
+        <div className="kp-card" style={{ padding: "0.4rem 1.1rem", marginBottom: "1rem" }}>
+          <div className="kp-orderlines">
+            {active.map((l) => (
+              <div className="kp-orderline" key={l.id}>
+                <div className="kp-orderline__name">
+                  {l.displayName}{" "}
+                  {l.status === "shortfall" && (
+                    <span className="kp-badge kp-badge--out">short</span>
+                  )}
+                  <div className="kp-orderline__qty">
+                    {l.quantity} × {formatCents(l.unitPriceCents)}
+                    {l.quantityFulfilled != null &&
+                      ` · ${l.quantityFulfilled} fulfilled`}
+                  </div>
+                </div>
+                <div className="kp-orderline__amt">
+                  {formatCents(l.lineSubtotalCents)}
+                </div>
+                {order.status === "draft" && (
+                  <div className="kp-orderline__act">
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="cancel-line" />
+                      <input type="hidden" name="reservationId" value={l.id} />
+                      <button
+                        className="kp-btn kp-btn--danger kp-btn--sm"
+                        type="submit"
+                      >
+                        Remove
+                      </button>
+                    </Form>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <table className="kp-ledger">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th style={{ textAlign: "center" }}>Qty</th>
-                <th style={{ textAlign: "center" }}>Fulfilled</th>
-                <th className="num">Price</th>
-                <th className="num">Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {active.map((l) => (
-                <tr key={l.id}>
-                  <td className="prod">
-                    {l.displayName}{" "}
-                    {l.status === "shortfall" && (
-                      <span className="kp-badge kp-badge--out">short</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: "center" }}>{l.quantity}</td>
-                  <td style={{ textAlign: "center" }}>{l.quantityFulfilled ?? "—"}</td>
-                  <td className="num">{formatCents(l.unitPriceCents)}</td>
-                  <td className="num" style={{ fontWeight: 600 }}>
-                    {formatCents(l.lineSubtotalCents)}
-                  </td>
-                  <td>
-                    {order.status === "draft" && (
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="cancel-line" />
-                        <input type="hidden" name="reservationId" value={l.id} />
-                        <button
-                          className="kp-btn kp-btn--danger kp-btn--sm"
-                          type="submit"
-                        >
-                          Remove
-                        </button>
-                      </Form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
         <div className="kp-card" style={{ padding: "1.2rem" }}>

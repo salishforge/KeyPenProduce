@@ -6,6 +6,7 @@ import { getDb } from "~/db/client";
 import { orders, orderingWindows } from "~/db/schema";
 import { readCart, cartCount } from "~/services/cart.server";
 import { ShopHeader } from "~/components/shop/ShopHeader";
+import { ChevronRight } from "~/components/ui/Icons";
 import { formatCents } from "~/lib/money";
 import { formatInZone } from "~/lib/time";
 
@@ -64,55 +65,39 @@ export default function Orders({ loaderData }: Route.ComponentProps) {
             )}
           </div>
         ) : (
-          <div className="kp-ledger-wrap">
-            <div className="kp-ledger-head">
-              <h3>Orders</h3>
-            </div>
-            <table className="kp-ledger">
-              <thead>
-                <tr>
-                  <th>Window</th>
-                  <th>Pickup</th>
-                  <th>Status</th>
-                  <th>Payment</th>
-                  <th className="num">Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o.id}>
-                    <td>{o.windowLabel}</td>
-                    <td>
-                      {formatInZone(new Date(o.pickupDate), undefined, {
-                        dateStyle: "medium",
-                      })}
-                    </td>
-                    <td>
-                      <span className={`kp-badge ${orderStatusVariant(o.status)}`}>
-                        {o.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`kp-badge ${paymentStatusVariant(o.paymentStatus)}`}>
-                        {o.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="num" style={{ fontWeight: 600 }}>
-                      {formatCents(o.totalCents)}
-                    </td>
-                    <td>
-                      <Link
-                        to={`/orders/${o.id}`}
-                        className="kp-btn kp-btn--outline kp-btn--sm"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="kp-orderlist">
+            {orders.map((o) => (
+              <Link
+                key={o.id}
+                to={`/orders/${o.id}`}
+                className="kp-ordercard"
+                aria-label={`Order for ${o.windowLabel}, ${formatCents(o.totalCents)}`}
+              >
+                <div className="kp-ordercard__main">
+                  <div className="kp-ordercard__title">{o.windowLabel}</div>
+                  <div className="kp-ordercard__meta">
+                    Pickup{" "}
+                    {formatInZone(new Date(o.pickupDate), undefined, {
+                      dateStyle: "medium",
+                    })}
+                  </div>
+                  <div className="kp-ordercard__badges">
+                    <span className={`kp-badge ${orderStatusVariant(o.status)}`}>
+                      {o.status}
+                    </span>
+                    <span className={`kp-badge ${paymentStatusVariant(o.paymentStatus)}`}>
+                      {o.paymentStatus}
+                    </span>
+                  </div>
+                </div>
+                <div className="kp-ordercard__right">
+                  <span className="kp-ordercard__total">
+                    {formatCents(o.totalCents)}
+                  </span>
+                  <ChevronRight size={18} className="kp-ordercard__chev" />
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </main>

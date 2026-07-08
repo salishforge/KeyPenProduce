@@ -50,3 +50,61 @@ export function ArrowUpRight({ size = 13, ...props }: { size?: number } & SVGPro
     </svg>
   );
 }
+
+/** Hamburger / menu toggle. */
+export function MenuIcon({ size = 22, ...props }: { size?: number } & SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 22 22" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M4 6.5h14M4 11h14M4 15.5h14"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Basket / bag for the cart pill + bar. */
+export function BasketIcon({ size = 18, ...props }: { size?: number } & SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M6.5 6.5 10 2.5l3.5 4M3 6.5h14l-1.1 9.2a1.5 1.5 0 0 1-1.5 1.3H5.6a1.5 1.5 0 0 1-1.5-1.3L3 6.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Right chevron for tappable rows. */
+export function ChevronRight({ size = 18, ...props }: { size?: number } & SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M8 5l5 5-5 5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Trash / remove. */
+export function TrashIcon({ size = 18, ...props }: { size?: number } & SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M4 6h12M8 6V4.5A1 1 0 0 1 9 3.5h2a1 1 0 0 1 1 1V6m3 0-.7 9.2a1.4 1.4 0 0 1-1.4 1.3H6.1a1.4 1.4 0 0 1-1.4-1.3L4 6m4 3v5m4-5v5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

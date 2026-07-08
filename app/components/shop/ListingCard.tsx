@@ -1,14 +1,16 @@
 /**
  * ListingCard — one produce listing on the weekly board.
  *
- * The "Reserve" button posts {intent:"add", listingId, qty} to the /shop
- * action, which adds to the cart cookie (inventory is only locked at order
- * submit — see app/services/ordering.ts). Sold-out listings swap to a
- * "Notify me" affordance.
+ * "Reserve" posts {intent:"add", listingId, qty} to the /shop action via a
+ * fetcher, so the basket updates in place (no full-page reload). The action
+ * returns data + Set-Cookie and React Router revalidates the loader, refreshing
+ * the basket bar + remaining stock. Inventory is only locked at order submit
+ * (see app/services/ordering.ts). Sold-out listings swap to a "gone" state.
  *
  * Intended location: app/components/shop/ListingCard.tsx
  */
-import { Form, Link } from "react-router";
+import { useEffect, useState } from "react";
+import { useFetcher, Link } from "react-router";
 import type { ListingView } from "~/lib/storefront/view-models";
 import { Stepper } from "~/components/ui/Stepper";
 
@@ -19,6 +21,22 @@ const STOCK_TONE_CLASS: Record<ListingView["stockTone"], string> = {
 };
 
 export function ListingCard({ listing }: { listing: ListingView }) {
+  const fetcher = useFetcher();
+  const busy = fetcher.state !== "idle";
+  const added = (fetcher.data as { ok?: boolean } | undefined)?.ok === true;
+  // Reset the stepper back to 0 after a successful add, and flash "Added".
+  const [resetKey, setResetKey] = useState(0);
+  const [justAdded, setJustAdded] = useState(false);
+  useEffect(() => {
+    if (fetcher.state === "idle" && added) {
+      setResetKey((k) => k + 1);
+      setJustAdded(true);
+      const t = setTimeout(() => setJustAdded(false), 1600);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
+
   return (
     <article className={`kp-listing${listing.soldOut ? " kp-listing--out" : ""}`}>
       <div className="kp-listing__top">
@@ -52,16 +70,25 @@ export function ListingCard({ listing }: { listing: ListingView }) {
         {listing.soldOut ? (
           <span className="kp-listing__gone">Gone for the week</span>
         ) : (
-          <Form method="post" className="kp-listing__reserve">
+          <fetcher.Form method="post" className="kp-listing__reserve">
             <input type="hidden" name="intent" value="add" />
             <input type="hidden" name="listingId" value={listing.id} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.6rem" }}>
-              <Stepper name="qty" defaultValue={0} min={0} max={listing.maxQty} label={listing.name} />
-              <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
-                Reserve
-              </button>
-            </div>
-          </Form>
+            <Stepper
+              key={resetKey}
+              name="qty"
+              defaultValue={0}
+              min={0}
+              max={listing.maxQty}
+              label={listing.name}
+            />
+            <button
+              type="submit"
+              className="kp-btn kp-btn--primary kp-btn--sm kp-listing__reserve-btn"
+              disabled={busy}
+            >
+              {busy ? "Adding…" : justAdded ? "Added ✓" : "Reserve"}
+            </button>
+          </fetcher.Form>
         )}
       </div>
     </article>
