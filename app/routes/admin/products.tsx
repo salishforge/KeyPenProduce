@@ -8,6 +8,7 @@ import { products, suppliers, PRODUCT_UNITS } from "~/db/schema";
 import { newId, slugify } from "~/lib/ids";
 import { parseDollarsToCents, formatCents } from "~/lib/money";
 import { createSupplier } from "~/services/catalog";
+import { EditableSelect } from "~/components/admin/EditableSelect";
 
 /** Sentinel select value that reveals the inline "create new supplier" field. */
 const NEW_SUPPLIER = "__new__";
@@ -74,11 +75,14 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   if (!name || !supplierId) return { error: "Name and supplier are required." };
   const unit = String(form.get("unit") ?? "").trim() || "each";
+  // Prices are optional; a blank field means $0.00.
+  const wholesaleRaw = String(form.get("wholesale") ?? "").trim() || "0";
+  const retailRaw = String(form.get("retail") ?? "").trim() || "0";
   let wholesale = 0;
   let retail = 0;
   try {
-    wholesale = parseDollarsToCents(String(form.get("wholesale") ?? "0"));
-    retail = parseDollarsToCents(String(form.get("retail") ?? "0"));
+    wholesale = parseDollarsToCents(wholesaleRaw);
+    retail = parseDollarsToCents(retailRaw);
   } catch {
     return { error: "Enter prices like 3.50" };
   }
@@ -100,7 +104,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { ok: true };
 }
 
-export default function Products({ loaderData }: Route.ComponentProps) {
+export default function Products({ loaderData, actionData }: Route.ComponentProps) {
   const { products, suppliers, unitOptions, categoryOptions } = loaderData;
   // Default to inline-create when there are no suppliers yet.
   const [supplierId, setSupplierId] = useState(
@@ -118,6 +122,9 @@ export default function Products({ loaderData }: Route.ComponentProps) {
       </div>
 
       <Form method="post" className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
+        {actionData && "error" in actionData && actionData.error && (
+          <p className="kp-error" style={{ margin: "0 0 0.8rem" }}>{actionData.error}</p>
+        )}
         <div className="kp-row">
           <label className="kp-field">
             <span className="kp-field__label">Name *</span>
@@ -148,18 +155,14 @@ export default function Products({ loaderData }: Route.ComponentProps) {
           )}
           <label className="kp-field">
             <span className="kp-field__label">Unit</span>
-            <input
-              className="kp-input"
+            <EditableSelect
               name="unit"
-              list="product-unit-options"
+              options={unitOptions}
               defaultValue="each"
-              autoComplete="off"
+              addLabel="+ New unit…"
+              newPlaceholder="e.g. pint, dozen"
+              required
             />
-            <datalist id="product-unit-options">
-              {unitOptions.map((u) => (
-                <option key={u} value={u} />
-              ))}
-            </datalist>
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Category</span>

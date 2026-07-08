@@ -9,6 +9,7 @@ import { listings, products, suppliers, orderingWindows, PRODUCT_UNITS } from "~
 import { newId } from "~/lib/ids";
 import { parseDollarsToCents, formatCents } from "~/lib/money";
 import { createProduct } from "~/services/catalog";
+import { EditableSelect } from "~/components/admin/EditableSelect";
 
 /** Sentinel product-select value that reveals the inline "new product" fields. */
 const NEW_PRODUCT = "__new__";
@@ -212,18 +213,14 @@ export default function WindowListings({ loaderData }: Route.ComponentProps) {
                 </label>
                 <label className="kp-field">
                   <span className="kp-field__label">Unit</span>
-                  <input
-                    className="kp-input"
+                  <EditableSelect
                     name="newProductUnit"
-                    list="listing-unit-options"
+                    options={unitOptions}
                     defaultValue="each"
-                    autoComplete="off"
+                    addLabel="+ New unit…"
+                    newPlaceholder="e.g. pint, dozen"
+                    required
                   />
-                  <datalist id="listing-unit-options">
-                    {unitOptions.map((u) => (
-                      <option key={u} value={u} />
-                    ))}
-                  </datalist>
                 </label>
               </div>
             )}
