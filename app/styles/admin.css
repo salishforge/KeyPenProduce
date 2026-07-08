@@ -237,3 +237,63 @@ table.kp-ledger .prod em {
   .kp-tiles { grid-template-columns: repeat(2, 1fr); }
   .kp-admin-cols { grid-template-columns: 1fr; }
 }
+
+/* Products — shared catalog cards with supplier chips ----------------------- */
+.kp-prodlist { display: flex; flex-direction: column; gap: 0.8rem; }
+.kp-prodcard {
+  background: var(--kp-paper-raised);
+  border: 1px solid var(--kp-rule);
+  border-radius: var(--kp-radius);
+  padding: 0.9rem 1.1rem;
+}
+.kp-prodcard__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.kp-prodcard__name { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.05rem; }
+.kp-prodcard__retail { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kp-supchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.7rem 0;
+}
+.kp-supchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--kp-tide);
+  background: var(--kp-note-bg);
+  border: 1px solid #a9c3bb;
+  border-radius: 999px;
+  padding: 0.28rem 0.35rem 0.28rem 0.7rem;
+}
+.kp-supchip__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--kp-tide-soft);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.kp-supchip__x:hover { background: rgba(30, 75, 67, 0.12); color: var(--kp-tomato); }
+.kp-linksup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--kp-rule-soft);
+}
+.kp-linksup .kp-select { width: auto; min-width: 11rem; }

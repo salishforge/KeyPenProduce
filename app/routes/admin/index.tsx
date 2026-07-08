@@ -20,7 +20,12 @@ import {
   PRODUCT_UNITS,
 } from "~/db/schema";
 import { getActiveWindow } from "~/services/listings";
-import { createProduct } from "~/services/catalog";
+import {
+  createProduct,
+  listProducts,
+  linkSupplier,
+  addListing,
+} from "~/services/catalog";
 import { commitWindow } from "~/services/commit";
 import { generateSupplierSheets } from "~/services/reconcile";
 import { newId } from "~/lib/ids";
@@ -97,19 +102,28 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     getActiveWindow(db),
   ]);
 
-  // Build form options regardless of whether there's an active window.
-  const [activeProducts, activeSuppliers] = await Promise.all([
-    db
-      .select({ id: products.id, name: products.name })
-      .from(products)
-      .where(eq(products.isActive, true))
-      .orderBy(products.name),
+  // Build form options regardless of whether there's an active window. The
+  // shared catalog gives each product its linked suppliers for the picker.
+  const [catalogProducts, activeSuppliers] = await Promise.all([
+    listProducts(db),
     db
       .select({ id: suppliers.id, name: suppliers.name })
       .from(suppliers)
       .where(eq(suppliers.isActive, true))
       .orderBy(suppliers.name),
   ]);
+  const activeProducts = catalogProducts
+    .filter((p) => p.isActive)
+    .map((p) => ({ id: p.id, name: p.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const productSuppliers: ListingFormOptions["productSuppliers"] = {};
+  for (const p of catalogProducts) {
+    productSuppliers[p.id] = p.suppliers.map((s) => ({
+      supplierId: s.supplierId,
+      name: s.name,
+      wholesaleCents: s.wholesaleCents,
+    }));
+  }
 
   // Suggest the built-in units plus any custom unit already saved to a product.
   const unitRows = await db.selectDistinct({ unit: products.unit }).from(products);
@@ -121,6 +135,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     produce: activeProducts,
     suppliers: activeSuppliers,
     units: unitOptions,
+    productSuppliers,
   };
 
   if (!activeWindow) {
@@ -412,22 +427,24 @@ export async function action({ request, context }: Route.ActionArgs) {
         return data({ ok: false, error: "Enter price like 3.50" }, { status: 400 });
       }
 
-      // Inline-create a product when "+ New produce…" was chosen, seeding its
-      // default retail from this listing's price.
+      if (!supplierId) {
+        return data({ ok: false, error: "Pick a supplier for this listing." }, { status: 400 });
+      }
+
+      // Inline-create a product when "+ New produce…" was chosen, then link the
+      // chosen supplier so it can be listed.
       let resolvedProduceId = produceId;
       if (produceId === "__new__") {
         const newName = String(form.get("newProduceName") ?? "").trim();
         if (!newName)
           return data({ ok: false, error: "Enter a name for the new produce." }, { status: 400 });
-        if (!supplierId)
-          return data({ ok: false, error: "Pick a supplier for the new produce." }, { status: 400 });
         try {
           const created = await createProduct(db, {
-            supplierId,
             name: newName,
             unit,
             defaultRetailDollars: priceStr,
           });
+          await linkSupplier(db, created.id, supplierId);
           resolvedProduceId = created.id;
         } catch (err) {
           return data(
@@ -437,10 +454,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         }
       }
 
-      const nowDate = new Date();
-
       if (id) {
-        // Update existing listing.
+        // Update an existing listing in place.
         const [existing] = await db
           .select()
           .from(listings)
@@ -454,41 +469,32 @@ export async function action({ request, context }: Route.ActionArgs) {
               priceCents,
               unit,
               quantityAvailable: available,
-              updatedAt: nowDate,
+              updatedAt: new Date(),
             })
             .where(eq(listings.id, id))
             .run();
         }
       } else {
-        // Insert new listing — need product details for display snapshot.
-        const [product] = await db
-          .select()
-          .from(products)
-          .where(eq(products.id, resolvedProduceId));
-        if (!product) {
-          return data({ ok: false, error: "Product not found" }, { status: 400 });
-        }
-        // We need a windowId — read from the hidden field or find the active window.
         const activeWin = await getActiveWindow(db);
         if (!activeWin) {
           return data({ ok: false, error: "No active window" }, { status: 400 });
         }
-        await db.insert(listings).values({
-          id: newId("lst"),
-          windowId: activeWin.id,
-          productId: resolvedProduceId,
-          supplierId,
-          displayName: product.name,
-          unit,
-          priceCents,
-          wholesaleCostCents: product.defaultWholesaleCents,
-          quantityAvailable: available,
-          quantityReserved: 0,
-          staysOpenAfterCutoff: false,
-          status: "available",
-          createdAt: nowDate,
-          updatedAt: nowDate,
-        });
+        // addListing validates the product↔supplier link and defaults the
+        // wholesale cost from it (the dashboard form doesn't collect a cost).
+        try {
+          await addListing(db, {
+            windowId: activeWin.id,
+            productId: resolvedProduceId,
+            supplierId,
+            priceDollars: priceStr,
+            quantityAvailable: available,
+          });
+        } catch (err) {
+          return data(
+            { ok: false, error: err instanceof Error ? err.message : "Could not add listing." },
+            { status: 400 },
+          );
+        }
       }
 
       return redirect("/admin");

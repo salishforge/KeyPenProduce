@@ -100,6 +100,23 @@ export async function undoLast(db: DB, actorUserId: string): Promise<string> {
         }
         break;
       }
+      case "unlink_supplier":
+        await catalog.unlinkSupplier(db, inv.productId as string, inv.supplierId as string);
+        summary = "Removed the supplier link.";
+        break;
+      case "relink_supplier":
+        await catalog.linkSupplier(
+          db,
+          inv.productId as string,
+          inv.supplierId as string,
+          ((inv.cents as number) / 100).toFixed(2),
+        );
+        summary = "Restored the supplier link.";
+        break;
+      case "set_supplier_cost":
+        await catalog.setSupplierCost(db, inv.productId as string, inv.supplierId as string, ((inv.cents as number) / 100).toFixed(2));
+        summary = "Reverted the supplier's cost.";
+        break;
       case "bulk_revert": {
         const listingIds = (inv.listingIds as string[]) ?? [];
         const createdProductIds = (inv.createdProductIds as string[]) ?? [];

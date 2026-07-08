@@ -33,6 +33,29 @@ export function ListingEditForm({
   );
   const creatingProduce = produceId === NEW_PRODUCE;
 
+  // Supplier options: a new produce can pick any supplier (it gets linked);
+  // an existing product is limited to the suppliers already linked to it.
+  const supplierOptions = creatingProduce
+    ? options.suppliers.map((s) => ({ supplierId: s.id, name: s.name }))
+    : (options.productSuppliers[produceId] ?? []).map((s) => ({
+        supplierId: s.supplierId,
+        name: s.name,
+      }));
+  const [supplierId, setSupplierId] = useState(
+    listing?.supplierId ?? supplierOptions[0]?.supplierId ?? "",
+  );
+
+  function onProduceChange(v: string) {
+    setProduceId(v);
+    const opts =
+      v === NEW_PRODUCE
+        ? options.suppliers.map((s) => s.id)
+        : (options.productSuppliers[v] ?? []).map((s) => s.supplierId);
+    setSupplierId(opts[0] ?? "");
+  }
+
+  const noLinkedSuppliers = !creatingProduce && supplierOptions.length === 0;
+
   return (
     <div className="kp-panel">
       <h3>{heading}</h3>
@@ -50,7 +73,7 @@ export function ListingEditForm({
               className="kp-select"
               name="produceId"
               value={produceId}
-              onChange={(e) => setProduceId(e.target.value)}
+              onChange={(e) => onProduceChange(e.target.value)}
             >
               {options.produce.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -62,15 +85,30 @@ export function ListingEditForm({
           </label>
           <label className="kp-field">
             <span className="kp-field__label">Supplier</span>
-            <select className="kp-select" name="supplierId" defaultValue={listing?.supplierId}>
-              {options.suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
+            <select
+              className="kp-select"
+              name="supplierId"
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              disabled={supplierOptions.length === 0}
+            >
+              {supplierOptions.length === 0 && (
+                <option value="">No suppliers linked</option>
+              )}
+              {supplierOptions.map((s) => (
+                <option key={s.supplierId} value={s.supplierId}>
                   {s.name}
                 </option>
               ))}
             </select>
           </label>
         </div>
+
+        {noLinkedSuppliers && (
+          <p className="kp-error" style={{ margin: "0 0 0.6rem" }}>
+            This product has no suppliers linked — link one on the Products page first.
+          </p>
+        )}
 
         {creatingProduce && (
           <div className="kp-row">

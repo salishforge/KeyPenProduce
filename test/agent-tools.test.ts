@@ -50,7 +50,7 @@ describe("agent catalog tools (execute directly)", () => {
       label: "W", opensAt: new Date(Date.now() - 1000), closesAt: new Date(Date.now() + 3_600_000), pickupDate: new Date(Date.now() + 86_400_000),
     });
     const listing = (await call(t.add_listing, {
-      windowId: win.id, productId: p.id, priceDollars: "3.00", wholesaleCostDollars: "1.50", quantityAvailable: 10,
+      windowId: win.id, productId: p.id, supplierId: s.id, priceDollars: "3.00", wholesaleCostDollars: "1.50", quantityAvailable: 10,
     })) as { id: string };
 
     let [l] = await db.select().from(listings).where(eq(listings.id, listing.id));
@@ -70,7 +70,7 @@ describe("agent catalog tools (execute directly)", () => {
       label: "W2", opensAt: new Date(Date.now() - 1000), closesAt: new Date(Date.now() + 3_600_000), pickupDate: new Date(Date.now() + 86_400_000),
     });
     const listing = (await call(t.add_listing, {
-      windowId: win.id, productId: p.id, priceDollars: "2.00", wholesaleCostDollars: "1.00", quantityAvailable: 5,
+      windowId: win.id, productId: p.id, supplierId: s.id, priceDollars: "2.00", wholesaleCostDollars: "1.00", quantityAvailable: 5,
     })) as { id: string };
 
     await call(t.set_listing_price, { listingId: listing.id, priceDollars: "2.75" });
