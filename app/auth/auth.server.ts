@@ -55,3 +55,19 @@ export function createAuth(env: AppEnv) {
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+
+/**
+ * Which social sign-in providers are actually configured (both id + secret
+ * present). Used by the auth pages so we never render a button that would
+ * error on click — the backend `socialProviders` map above is gated the same
+ * way, so this keeps the UI honest with what the server can do.
+ */
+export function configuredSocialProviders(env: AppEnv): {
+  google: boolean;
+  facebook: boolean;
+} {
+  return {
+    google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+    facebook: Boolean(env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET),
+  };
+}

@@ -1,6 +1,6 @@
 import { Form, Link, redirect, useActionData, useSearchParams } from "react-router";
 import type { Route } from "./+types/signup";
-import { createAuth } from "~/auth/auth.server";
+import { createAuth, configuredSocialProviders } from "~/auth/auth.server";
 import { getSessionUser, landingPathForRole } from "~/auth/session.server";
 import { redirectWithCookies } from "~/auth/forward";
 import { LeafMark } from "~/components/ui/Icons";
@@ -10,9 +10,11 @@ export function meta() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const user = await getSessionUser(context.cloudflare.env, request);
+  const env = context.cloudflare.env;
+  const user = await getSessionUser(env, request);
   if (user) throw redirect(landingPathForRole(user.role));
-  return null;
+  // Only offer social sign-up for providers that are actually configured.
+  return { social: configuredSocialProviders(env) };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -53,10 +55,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
-export default function Signup() {
+export default function Signup({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const [params] = useSearchParams();
   const redirectTo = params.get("redirectTo") ?? "/";
+  const social = loaderData.social;
+  const anySocial = social.google || social.facebook;
   return (
     <main className="kp-auth">
       <div className="kp-auth__brand">
@@ -111,30 +115,36 @@ export default function Signup() {
         </button>
       </Form>
 
-      <div className="kp-card kp-auth__card">
-        <p className="kp-muted" style={{ margin: "0 0 0.75rem", fontSize: "0.88rem" }}>
-          Or sign up with
-        </p>
-        <Form method="post" style={{ display: "flex", gap: "0.6rem" }}>
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <button
-            name="intent"
-            value="google"
-            className="kp-btn kp-btn--outline"
-            style={{ flex: 1, justifyContent: "center" }}
-          >
-            Google
-          </button>
-          <button
-            name="intent"
-            value="facebook"
-            className="kp-btn kp-btn--outline"
-            style={{ flex: 1, justifyContent: "center" }}
-          >
-            Facebook
-          </button>
-        </Form>
-      </div>
+      {anySocial && (
+        <div className="kp-card kp-auth__card">
+          <p className="kp-muted" style={{ margin: "0 0 0.75rem", fontSize: "0.88rem" }}>
+            Or sign up with
+          </p>
+          <Form method="post" style={{ display: "flex", gap: "0.6rem" }}>
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            {social.google && (
+              <button
+                name="intent"
+                value="google"
+                className="kp-btn kp-btn--outline"
+                style={{ flex: 1, justifyContent: "center" }}
+              >
+                Google
+              </button>
+            )}
+            {social.facebook && (
+              <button
+                name="intent"
+                value="facebook"
+                className="kp-btn kp-btn--outline"
+                style={{ flex: 1, justifyContent: "center" }}
+              >
+                Facebook
+              </button>
+            )}
+          </Form>
+        </div>
+      )}
 
       <p className="kp-muted" style={{ fontSize: "0.88rem", textAlign: "center" }}>
         Already have an account?{" "}

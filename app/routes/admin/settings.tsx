@@ -5,6 +5,7 @@
  * The layout provides the StationShell chrome; this component renders only
  * its own content (no TopNav/AdminNav).
  */
+import type { ReactNode } from "react";
 import { data, Form } from "react-router";
 import type { Route } from "./+types/settings";
 import { requireRole } from "~/auth/session.server";
@@ -37,7 +38,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
   await requireRole(env, request, ["admin"]);
   const config = await readStoreConfig(env);
-  return { config };
+  // Surface which integrations are actually wired so the toggles don't promise
+  // behavior the server can't deliver yet (Stripe for online pay, Resend for
+  // email/reminders). These are server-only checks — no secret values leave.
+  const integrations = {
+    stripe: Boolean(env.STRIPE_SECRET_KEY),
+    email: Boolean(env.RESEND_API_KEY),
+  };
+  return { config, integrations };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -73,8 +81,29 @@ export async function action({ request, context }: Route.ActionArgs) {
 /* Component                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** An amber "this isn't wired up yet" callout, shown above a settings group. */
+function NotConnectedNote({ children }: { children: ReactNode }) {
+  return (
+    <p
+      role="status"
+      style={{
+        margin: "0 0 0.9rem",
+        padding: "0.6rem 0.75rem",
+        borderRadius: "0.5rem",
+        border: "1px solid color-mix(in srgb, var(--kp-honey, #8a6d1f) 45%, transparent)",
+        background: "color-mix(in srgb, var(--kp-honey, #8a6d1f) 12%, transparent)",
+        color: "var(--kp-ink, inherit)",
+        fontSize: "0.85rem",
+        lineHeight: 1.45,
+      }}
+    >
+      <b style={{ fontWeight: 600 }}>Not connected yet.</b> {children}
+    </p>
+  );
+}
+
 export default function SettingsRoute({ loaderData }: Route.ComponentProps) {
-  const { config } = loaderData;
+  const { config, integrations } = loaderData;
 
   return (
     <>
@@ -162,6 +191,13 @@ export default function SettingsRoute({ loaderData }: Route.ComponentProps) {
           title="Payments"
           desc="How customers can pay. At least one should stay on."
         >
+          {!integrations.stripe && (
+            <NotConnectedNote>
+              Online card payments aren&rsquo;t connected yet. You can leave this
+              on, but customers won&rsquo;t be charged online until Stripe is set
+              up — until then, use <b>Pay at pickup</b>.
+            </NotConnectedNote>
+          )}
           <ConfigRow title="Pay online" sub="Card at checkout via Stripe.">
             <Switch name="payOnline" defaultChecked={config.payOnline} />
           </ConfigRow>
@@ -174,6 +210,12 @@ export default function SettingsRoute({ loaderData }: Route.ComponentProps) {
           title="Pickup reminder"
           desc="An optional nudge the day before pickup."
         >
+          {!integrations.email && (
+            <NotConnectedNote>
+              Email isn&rsquo;t connected yet, so reminders and order emails
+              won&rsquo;t send. Set up Resend to turn these on.
+            </NotConnectedNote>
+          )}
           <ConfigRow title="Send reminder">
             <Switch name="sendReminder" defaultChecked={config.sendReminder} />
           </ConfigRow>

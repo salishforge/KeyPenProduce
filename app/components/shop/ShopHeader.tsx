@@ -12,7 +12,14 @@ import { useState } from "react";
 import { Form, Link } from "react-router";
 import { LeafMark, MenuIcon, BasketIcon } from "~/components/ui/Icons";
 
-export function ShopHeader({ basketCount }: { basketCount: number }) {
+export function ShopHeader({
+  basketCount,
+  signedIn = true,
+}: {
+  basketCount: number;
+  /** When false, show a "Sign in" link instead of the account/orders nav. */
+  signedIn?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -33,13 +40,24 @@ export function ShopHeader({ basketCount }: { basketCount: number }) {
         {/* Inline nav — desktop only (CSS-hidden on mobile). */}
         <nav className="kp-shop-nav" aria-label="Storefront">
           <Link to="/shop">This week</Link>
-          <Link to="/orders">My orders</Link>
-          <Link to="/account">Account</Link>
-          <Form method="post" action="/logout">
-            <button type="submit" className="kp-btn kp-btn--ghost kp-btn--sm">
-              Sign out
-            </button>
-          </Form>
+          {signedIn ? (
+            <>
+              <Link to="/orders">My orders</Link>
+              <Link to="/account">Account</Link>
+              <Form method="post" action="/logout">
+                <button type="submit" className="kp-btn kp-btn--ghost kp-btn--sm">
+                  Sign out
+                </button>
+              </Form>
+            </>
+          ) : (
+            <Link
+              to="/login?redirectTo=/shop"
+              className="kp-btn kp-btn--primary kp-btn--sm"
+            >
+              Sign in
+            </Link>
+          )}
         </nav>
 
         {/* Hamburger — mobile only. */}
@@ -57,11 +75,19 @@ export function ShopHeader({ basketCount }: { basketCount: number }) {
       {open && (
         <nav className="kp-navmenu" aria-label="Storefront menu">
           <Link to="/shop" onClick={close}>This week</Link>
-          <Link to="/orders" onClick={close}>My orders</Link>
-          <Link to="/account" onClick={close}>Account</Link>
-          <Form method="post" action="/logout">
-            <button type="submit">Sign out</button>
-          </Form>
+          {signedIn ? (
+            <>
+              <Link to="/orders" onClick={close}>My orders</Link>
+              <Link to="/account" onClick={close}>Account</Link>
+              <Form method="post" action="/logout">
+                <button type="submit">Sign out</button>
+              </Form>
+            </>
+          ) : (
+            <Link to="/login?redirectTo=/shop" onClick={close}>
+              Sign in
+            </Link>
+          )}
         </nav>
       )}
     </header>

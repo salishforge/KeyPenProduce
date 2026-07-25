@@ -11,7 +11,7 @@ import type { Route } from "./+types/index";
 import { data, redirect } from "react-router";
 import { inArray } from "drizzle-orm";
 
-import { requireUser } from "~/auth/session.server";
+import { getSessionUser } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { listings as listingsTable, products } from "~/db/schema";
 import { getActiveWindow, getStorefrontListings } from "~/services/listings";
@@ -55,7 +55,10 @@ const WEEK_NOTE_DEFAULT =
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = context.cloudflare.env;
-  const user = await requireUser(env, request);
+  // The board is public — anyone can browse the week's produce and build a
+  // basket (the cart is a cookie, no inventory lock). Sign-in is only required
+  // at the reserve/place-order step (see /cart). `user` may be null here.
+  const user = await getSessionUser(env, request);
   const db = getDb(env.DB);
 
   const cart = await readCart(request);
@@ -114,10 +117,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       listings: [],
       basket,
     };
-    return shop;
+    return { ...shop, signedIn: user != null };
   }
 
-  const rows = await getStorefrontListings(db, window, user.id);
+  const rows = await getStorefrontListings(db, window, user?.id ?? null);
 
   // preservationSlug lives on the product, not the per-week listing snapshot.
   const productIds = [...new Set(rows.map((r) => r.productId))];
@@ -194,12 +197,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     listings,
     basket,
   };
-  return shop;
+  return { ...shop, signedIn: user != null };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
-  await requireUser(env, request);
+  // No auth here: guests can build a basket (cookie only, no inventory lock).
+  // The reserve/place-order step in /cart is where sign-in is enforced.
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
 
@@ -240,7 +244,7 @@ export default function ShopRoute({ loaderData }: Route.ComponentProps) {
     <>
       {/* Live-refresh remaining stock while the customer browses. */}
       <LivePoll />
-      <ShopHeader basketCount={shop.basket.count} />
+      <ShopHeader basketCount={shop.basket.count} signedIn={shop.signedIn} />
 
       <WeekHero week={shop.week} />
 
