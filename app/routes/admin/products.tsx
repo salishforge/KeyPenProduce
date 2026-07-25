@@ -5,6 +5,7 @@ import type { Route } from "./+types/products";
 import { requireRole } from "~/auth/session.server";
 import { getDb } from "~/db/client";
 import { products, suppliers, PRODUCT_UNITS } from "~/db/schema";
+import { newId } from "~/lib/ids";
 import { formatCents } from "~/lib/money";
 import {
   createProduct,
@@ -14,6 +15,9 @@ import {
   listProducts,
 } from "~/services/catalog";
 import { EditableSelect } from "~/components/admin/EditableSelect";
+
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** Sentinel select value that reveals the inline "create new supplier" field. */
 const NEW_SUPPLIER = "__new__";
@@ -52,6 +56,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       unit: p.unit,
       category: p.category,
       retailCents: p.defaultRetailCents,
+      imageUrl: p.imageKey ? `/img/${p.imageKey}` : null,
       suppliers: p.suppliers,
     })),
     suppliers: supplierList,
@@ -66,6 +71,38 @@ export async function action({ request, context }: Route.ActionArgs) {
   const db = getDb(env.DB);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "create");
+
+  // Set a product's photo: upload to R2 and store its key.
+  if (intent === "set-image") {
+    const productId = String(form.get("productId") ?? "");
+    const file = form.get("file");
+    if (!(file instanceof File) || file.size === 0)
+      return { error: "Choose an image file." };
+    if (!IMAGE_TYPES.has(file.type))
+      return { error: "Use a JPG, PNG, or WebP image." };
+    if (file.size > MAX_IMAGE_BYTES)
+      return { error: "Image too large (max 5 MB)." };
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const key = `products/${newId("img").replace("img_", "")}.${ext}`;
+    await env.PRODUCT_IMAGES.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: file.type },
+    });
+    await db
+      .update(products)
+      .set({ imageKey: key, updatedAt: new Date() })
+      .where(eq(products.id, productId))
+      .run();
+    return { ok: true };
+  }
+
+  if (intent === "remove-image") {
+    await db
+      .update(products)
+      .set({ imageKey: null, updatedAt: new Date() })
+      .where(eq(products.id, String(form.get("productId") ?? "")))
+      .run();
+    return { ok: true };
+  }
 
   // Link (or re-cost) a supplier on a product.
   if (intent === "link-supplier") {
@@ -206,16 +243,50 @@ function ProductCard({
   return (
     <article className="kp-prodcard">
       <div className="kp-prodcard__head">
-        <div>
-          <span className="kp-prodcard__name">{product.name}</span>{" "}
-          <span className="kp-muted">/ {product.unit}</span>
-          {product.category && (
-            <span className="kp-muted"> · {product.category}</span>
+        <div className="kp-prodcard__id">
+          {product.imageUrl ? (
+            <img className="kp-prodcard__thumb" src={product.imageUrl} alt="" />
+          ) : (
+            <span className="kp-prodcard__thumb kp-prodcard__thumb--empty" aria-hidden="true" />
           )}
+          <div>
+            <span className="kp-prodcard__name">{product.name}</span>{" "}
+            <span className="kp-muted">/ {product.unit}</span>
+            {product.category && (
+              <span className="kp-muted"> · {product.category}</span>
+            )}
+          </div>
         </div>
         <div className="kp-prodcard__retail">
           {formatCents(product.retailCents)} <span className="kp-muted">retail</span>
         </div>
+      </div>
+
+      <div className="kp-prodimg">
+        <Form method="post" encType="multipart/form-data" className="kp-prodimg__form">
+          <input type="hidden" name="intent" value="set-image" />
+          <input type="hidden" name="productId" value={product.id} />
+          <input
+            className="kp-input"
+            type="file"
+            name="file"
+            accept="image/jpeg,image/png,image/webp"
+            required
+            aria-label={`Photo for ${product.name}`}
+          />
+          <button type="submit" className="kp-btn kp-btn--outline kp-btn--sm">
+            {product.imageUrl ? "Replace photo" : "Add photo"}
+          </button>
+        </Form>
+        {product.imageUrl && (
+          <Form method="post">
+            <input type="hidden" name="intent" value="remove-image" />
+            <input type="hidden" name="productId" value={product.id} />
+            <button type="submit" className="kp-btn kp-btn--ghost kp-btn--sm">
+              Remove photo
+            </button>
+          </Form>
+        )}
       </div>
 
       <div className="kp-supchips">

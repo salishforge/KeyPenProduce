@@ -171,6 +171,19 @@
   padding: 1rem;
 }
 .kp-listing--out { opacity: 0.62; }
+.kp-listing__img {
+  margin: -1rem -1rem 0.85rem; /* bleed to the card edges above the padding */
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--kp-radius) var(--kp-radius) 0 0;
+  background: var(--kp-note-bg);
+}
+.kp-listing__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .kp-listing__top { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
 .kp-listing__name { font-family: var(--kp-font-display); font-weight: 600; font-size: 1.12rem; line-height: 1.1; }
 .kp-listing__bot { font-family: var(--kp-font-accent); font-style: italic; font-size: 0.86rem; color: var(--kp-ink-soft); margin-top: 0.1rem; }

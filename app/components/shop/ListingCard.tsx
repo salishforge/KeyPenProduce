@@ -39,6 +39,11 @@ export function ListingCard({ listing }: { listing: ListingView }) {
 
   return (
     <article className={`kp-listing${listing.soldOut ? " kp-listing--out" : ""}`}>
+      {listing.imageUrl && (
+        <div className="kp-listing__img">
+          <img src={listing.imageUrl} alt={listing.name} loading="lazy" />
+        </div>
+      )}
       <div className="kp-listing__top">
         <div>
           <div className="kp-listing__name">{listing.name}</div>
