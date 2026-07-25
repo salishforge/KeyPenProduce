@@ -40,8 +40,8 @@ export default function Home() {
           <Link to="/login" className="kp-btn kp-btn--ghost kp-btn--sm">
             Sign in
           </Link>
-          <Link to="/signup" className="kp-btn kp-btn--primary kp-btn--sm">
-            Create account
+          <Link to="/shop" className="kp-btn kp-btn--primary kp-btn--sm">
+            Browse this week
           </Link>
         </div>
       </header>
@@ -55,14 +55,15 @@ export default function Home() {
           </h1>
           <p className="kp-hero__note">
             Browse this week's harvest, reserve what you'd like, and pick it up
-            at our central location. Pay online or at pickup.
+            at our central location. Pay online or at pickup. No account needed
+            to look around.
           </p>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "1.5rem", marginBottom: "1rem" }}>
-            <Link to="/signup" className="kp-btn kp-btn--primary">
-              Create an account
+            <Link to="/shop" className="kp-btn kp-btn--primary">
+              Browse this week
             </Link>
-            <Link to="/login" className="kp-btn kp-btn--outline">
-              Sign in
+            <Link to="/signup" className="kp-btn kp-btn--outline">
+              Create an account
             </Link>
           </div>
         </div>
