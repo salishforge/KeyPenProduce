@@ -50,6 +50,7 @@ export default [
   // Fulfillment desk
   route("desk", "routes/desk/index.tsx"),
   route("desk/order/:orderId", "routes/desk/order.tsx"),
+  route("desk/order/:orderId/manifest", "routes/desk/manifest.tsx"),
 
   // Resource routes
   route("api/stripe/webhook", "routes/api/stripe-webhook.tsx"),

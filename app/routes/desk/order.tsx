@@ -113,6 +113,15 @@ export default function DeskOrder({ loaderData }: Route.ComponentProps) {
               {order.paymentStatus}
             </span>
           </div>
+
+          <div style={{ marginTop: "0.9rem" }}>
+            <Link
+              to={`/desk/order/${order.id}/manifest`}
+              className="kp-btn kp-btn--outline kp-btn--sm"
+            >
+              Load-out manifest →
+            </Link>
+          </div>
         </div>
 
         <div className="kp-ledger-wrap" style={{ marginBottom: "1rem" }}>

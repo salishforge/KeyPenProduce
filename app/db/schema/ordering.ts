@@ -183,6 +183,19 @@ export const orders = sqliteTable(
   ],
 );
 
+/**
+ * Per-line payment state. Payment is normally taken for a whole order, but the
+ * load-out manifest has to distinguish prepaid goods from goods still owed for,
+ * so the authoritative flag lives on the line:
+ *   unpaid          — not yet paid (customer owes at pickup)
+ *   prepaid         — paid in advance online (before pickup)
+ *   paid_at_pickup  — settled in person at the desk (cash / in-person card)
+ * An order is "fully prepaid" only when every active line is `prepaid` — that's
+ * what drives the PAID watermark.
+ */
+export const LINE_PAID_STATUSES = ["unpaid", "prepaid", "paid_at_pickup"] as const;
+export type LinePaidStatus = (typeof LINE_PAID_STATUSES)[number];
+
 export const RESERVATION_STATUSES = [
   "held",
   "committed",
@@ -226,6 +239,13 @@ export const reservations = sqliteTable(
       .default("held"),
     shortfallQuantity: integer("shortfallQuantity").notNull().default(0),
     refundCents: integer("refundCents").notNull().default(0),
+
+    // Per-line payment (see LINE_PAID_STATUSES). Drives the manifest watermark
+    // and the per-item "Prepaid / Due at pickup" marking.
+    paidStatus: text("paidStatus", { enum: LINE_PAID_STATUSES })
+      .notNull()
+      .default("unpaid"),
+    paidAt: integer("paidAt", { mode: "timestamp_ms" }),
 
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
