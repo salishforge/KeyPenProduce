@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Route } from "./+types/index";
@@ -64,24 +65,38 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
+/** Plain-language pickup state — "committed" means nothing to desk staff. */
+function statusLabel(status: string): string {
+  if (status === "active") return "Packed";
+  if (status === "committed") return "To pack";
+  if (status === "completed") return "Picked up";
+  return status;
+}
+
 function orderStatusBadge(status: string) {
   if (status === "active") return "kp-badge kp-badge--active";
   if (status === "committed") return "kp-badge kp-badge--draft";
   return "kp-badge";
 }
 
-function paymentStatusBadge(status: string) {
-  if (status === "paid") return "kp-badge kp-badge--ok";
-  if (status === "pending") return "kp-badge kp-badge--low";
-  return "kp-badge";
-}
-
 export default function Desk({ loaderData }: Route.ComponentProps) {
   const { windows, pickups } = loaderData;
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? pickups.filter(
+        (o) =>
+          o.customer.toLowerCase().includes(q) ||
+          (o.pickupName ?? "").toLowerCase().includes(q),
+      )
+    : pickups;
+  const owing = pickups.filter((o) => o.paymentStatus !== "paid").length;
+
   return (
     <>
       <DeskHeader />
-      <main style={{ padding: "clamp(1rem, 3vw, 1.8rem)" }}>
+      <main className="kp-desk">
         <div className="kp-st-head">
           <div>
             <p className="kp-eyebrow">Fulfillment</p>
@@ -101,6 +116,7 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
             )}
           </div>
         </div>
+
         {windows.length === 0 ? (
           <div className="kp-card" style={{ padding: "1.1rem" }}>
             <p className="kp-muted" style={{ margin: 0 }}>
@@ -108,50 +124,68 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
             </p>
           </div>
         ) : (
-          <div className="kp-ledger-wrap">
-            <div className="kp-ledger-head">
-              <h3>Orders awaiting pickup</h3>
+          <>
+            <div className="kp-desk__tools">
+              <input
+                className="kp-input kp-desk__search"
+                type="search"
+                inputMode="search"
+                placeholder="Find a customer by name…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Find a customer by name"
+              />
+              <p className="kp-desk__count">
+                {shown.length} of {pickups.length} waiting
+                {owing > 0 && ` · ${owing} to collect from`}
+              </p>
             </div>
-            <table className="kp-ledger">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Pickup name</th>
-                  <th>Order status</th>
-                  <th>Payment</th>
-                  <th className="num">Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pickups.map((o) => (
-                  <tr key={o.id}>
-                    <td>{o.customer}</td>
-                    <td>{o.pickupName ?? o.customer}</td>
-                    <td>
-                      <span className={orderStatusBadge(o.status)}>
-                        {o.status}
+
+            <div className="kp-desk__list">
+              {shown.length === 0 && (
+                <p className="kp-muted">No one matching “{query}”.</p>
+              )}
+              {shown.map((o) => {
+                const paid = o.paymentStatus === "paid";
+                return (
+                  <Link
+                    key={o.id}
+                    to={`/desk/order/${o.id}`}
+                    className="kp-deskcard"
+                  >
+                    <div className="kp-deskcard__main">
+                      <div className="kp-deskcard__name">
+                        {o.pickupName ?? o.customer}
+                      </div>
+                      {o.pickupName && o.pickupName !== o.customer && (
+                        <div className="kp-deskcard__sub">
+                          ordered by {o.customer}
+                        </div>
+                      )}
+                      <div className="kp-deskcard__tags">
+                        <span className={orderStatusBadge(o.status)}>
+                          {statusLabel(o.status)}
+                        </span>
+                        <span
+                          className={`kp-badge ${paid ? "kp-badge--ok" : "kp-badge--out"}`}
+                        >
+                          {paid ? "Paid" : "Collect payment"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="kp-deskcard__right">
+                      <span className="kp-deskcard__total">
+                        {formatCents(o.totalCents)}
                       </span>
-                    </td>
-                    <td>
-                      <span className={paymentStatusBadge(o.paymentStatus)}>
-                        {o.paymentStatus}
+                      <span className="kp-deskcard__go" aria-hidden="true">
+                        →
                       </span>
-                    </td>
-                    <td className="num">{formatCents(o.totalCents)}</td>
-                    <td>
-                      <Link
-                        to={`/desk/order/${o.id}`}
-                        className="kp-btn kp-btn--outline kp-btn--sm"
-                      >
-                        Open
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </>
