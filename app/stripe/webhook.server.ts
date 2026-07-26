@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import type Stripe from "stripe";
 import type { DB } from "~/db/client";
-import { orders, payments, webhookEvents } from "~/db/schema";
+import { orders, payments, reservations, webhookEvents } from "~/db/schema";
 import type { AppEnv } from "~/lib/env";
 import { newId } from "~/lib/ids";
 import { recordLedgerEntry } from "~/services/ledger";
@@ -137,6 +137,25 @@ async function markOrderPaidOnline(
     stripeObjectId: args.intentId ?? undefined,
     occurredAt: nowDate,
   });
+
+  // Per-line payment state for the load-out manifest. An online payment lands
+  // before pickup ("prepaid" → PAID watermark); a card taken in person at the
+  // desk settles like cash. Lines already marked keep their status.
+  await db
+    .update(reservations)
+    .set({
+      paidStatus: args.channel === "in_person" ? "paid_at_pickup" : "prepaid",
+      paidAt: nowDate,
+      updatedAt: nowDate,
+    })
+    .where(
+      and(
+        eq(reservations.orderId, args.orderId),
+        eq(reservations.paidStatus, "unpaid"),
+        ne(reservations.status, "cancelled"),
+      ),
+    )
+    .run();
 
   await db
     .update(orders)
