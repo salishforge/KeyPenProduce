@@ -102,7 +102,7 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
       <div className="kp-st-head">
         <div>
           <p className="kp-eyebrow">
-            <Link to="/admin/windows" className="kp-linkact">Windows</Link>
+            <Link to="/admin/windows" className="kp-linkact">Order weeks</Link>
           </p>
           <h1>{win.label}</h1>
           <p className="kp-st-head__meta">

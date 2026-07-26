@@ -35,6 +35,7 @@ import { readStoreConfig } from "~/lib/store-config";
 import { CROPS } from "~/lib/preservation/preservation-data";
 
 import { WindowLifecycle } from "~/components/admin/WindowLifecycle";
+import { WeekRhythmHelp, FirstRunGuide } from "~/components/admin/WeekRhythmHelp";
 import { SummaryTiles } from "~/components/admin/SummaryTiles";
 import { ListingsTable } from "~/components/admin/ListingsTable";
 import { ListingEditForm } from "~/components/admin/ListingEditForm";
@@ -513,21 +514,20 @@ export default function AdminThisWeek({ loaderData }: Route.ComponentProps) {
   const { window, windowId, options, formMode, editing, isAdmin } = loaderData;
 
   if (!windowId) {
-    // No active window — minimal state.
+    // No active order week yet — the first-run state a brand-new owner sees.
     return (
-      <div className="kp-st-head">
-        <div>
-          <p className="kp-eyebrow">This week</p>
-          <h1>No open window</h1>
-          <p className="kp-st-head__meta">
-            Create a window in{" "}
-            <a href="/admin/windows" className="kp-linkact">
-              /admin/windows
-            </a>{" "}
-            to get started.
-          </p>
+      <>
+        <div className="kp-st-head">
+          <div>
+            <p className="kp-eyebrow">This week</p>
+            <h1>No order week open yet</h1>
+            <p className="kp-st-head__meta">
+              Nothing is taking orders right now. Here&rsquo;s how to get going.
+            </p>
+          </div>
         </div>
-      </div>
+        <FirstRunGuide />
+      </>
     );
   }
 
@@ -567,6 +567,8 @@ export default function AdminThisWeek({ loaderData }: Route.ComponentProps) {
           ) : null}
         </div>
       </div>
+
+      <WeekRhythmHelp />
 
       <a
         href="/admin/assistant"

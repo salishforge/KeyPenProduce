@@ -56,8 +56,11 @@ export default function Windows({ loaderData }: Route.ComponentProps) {
       <div className="kp-st-head">
         <div>
           <p className="kp-eyebrow">Admin</p>
-          <h1>Ordering windows</h1>
-          <p className="kp-st-head__meta">Each window is one week of ordering and pickup.</p>
+          <h1>Order weeks</h1>
+          <p className="kp-st-head__meta">
+            Each order week is one round of ordering and pickup — set when
+            ordering opens, the cutoff, and the pickup day.
+          </p>
         </div>
       </div>
 
