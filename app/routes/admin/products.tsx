@@ -156,6 +156,20 @@ type SupplierOption = { id: string; name: string };
 
 export default function Products({ loaderData, actionData }: Route.ComponentProps) {
   const { products, suppliers, unitOptions, categoryOptions } = loaderData;
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+
+  const q = query.trim().toLowerCase();
+  const filtered = products.filter((p) => {
+    if (category && p.category !== category) return false;
+    if (!q) return true;
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.category ?? "").toLowerCase().includes(q) ||
+      p.suppliers.some((s) => s.name.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <>
       <div className="kp-st-head">
@@ -220,12 +234,60 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
 
       <div className="kp-ledger-head">
         <h3>All products</h3>
+        {products.length > 0 && (
+          <span className="kp-muted" style={{ fontSize: "0.85rem" }}>
+            {filtered.length === products.length
+              ? `${products.length} total`
+              : `${filtered.length} of ${products.length}`}
+          </span>
+        )}
       </div>
+
+      {products.length > 0 && (
+        <div className="kp-prodfilter">
+          <input
+            className="kp-input kp-prodfilter__search"
+            type="search"
+            placeholder="Search products, suppliers…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search products"
+          />
+          {categoryOptions.length > 0 && (
+            <div className="kp-catchips" role="group" aria-label="Filter by category">
+              <button
+                type="button"
+                className={`kp-catchip${category === null ? " is-active" : ""}`}
+                onClick={() => setCategory(null)}
+              >
+                All
+              </button>
+              {categoryOptions.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  className={`kp-catchip${category === c ? " is-active" : ""}`}
+                  onClick={() => setCategory((cur) => (cur === c ? null : c))}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="kp-prodlist">
         {products.length === 0 && (
           <p className="kp-muted">No products yet. Add one above.</p>
         )}
-        {products.map((p) => (
+        {products.length > 0 && filtered.length === 0 && (
+          <p className="kp-muted">
+            No products match “{query}”
+            {category ? ` in ${category}` : ""}.
+          </p>
+        )}
+        {filtered.map((p) => (
           <ProductCard key={p.id} product={p} suppliers={suppliers} />
         ))}
       </div>

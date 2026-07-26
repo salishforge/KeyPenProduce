@@ -23,7 +23,7 @@ interface NavItem {
 // top-level nav — they're reached from the windows screen.
 const PRIMARY: NavItem[] = [
   { to: "/admin", label: "This week", end: true },
-  { to: "/admin/windows", label: "Windows" },
+  { to: "/admin/windows", label: "Order weeks" },
   { to: "/admin/products", label: "Products" },
   { to: "/admin/suppliers", label: "Suppliers" },
   { to: "/admin/assistant", label: "Assistant" },
