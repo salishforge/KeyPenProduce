@@ -61,6 +61,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     storeName: String(form.get("storeName") ?? DEFAULT_CONFIG.storeName),
     tagline: String(form.get("tagline") ?? DEFAULT_CONFIG.tagline),
     pickupLocation: String(form.get("pickupLocation") ?? DEFAULT_CONFIG.pickupLocation),
+    businessName: String(form.get("businessName") ?? DEFAULT_CONFIG.businessName),
+    contactEmail: String(form.get("contactEmail") ?? DEFAULT_CONFIG.contactEmail).trim(),
+    contactPhone: String(form.get("contactPhone") ?? DEFAULT_CONFIG.contactPhone).trim(),
     accentHex: String(form.get("accentHex") ?? DEFAULT_CONFIG.accentHex),
     orderCloses: String(form.get("orderCloses") ?? DEFAULT_CONFIG.orderCloses),
     pickupWindow: String(form.get("pickupWindow") ?? DEFAULT_CONFIG.pickupWindow),
@@ -141,6 +144,43 @@ export default function SettingsRoute({ loaderData }: Route.ComponentProps) {
               className="kp-input"
               name="pickupLocation"
               defaultValue={config.pickupLocation}
+            />
+          </ConfigRow>
+        </ConfigSection>
+
+        <ConfigSection
+          title="Business & contact"
+          desc="Shown on the Contact page, the site footer, and your policies."
+        >
+          <ConfigRow
+            title="Business name"
+            sub="Your legal or DBA name, used in the Terms and Privacy pages."
+          >
+            <input
+              className="kp-input"
+              name="businessName"
+              defaultValue={config.businessName}
+            />
+          </ConfigRow>
+          <ConfigRow
+            title="Contact email"
+            sub="Where customers reach you. Also used as the from-address name."
+          >
+            <input
+              className="kp-input"
+              name="contactEmail"
+              type="email"
+              placeholder="hello@keypenproduceexpress.com"
+              defaultValue={config.contactEmail}
+            />
+          </ConfigRow>
+          <ConfigRow title="Contact phone" sub="Optional. Leave blank to hide.">
+            <input
+              className="kp-input"
+              name="contactPhone"
+              type="tel"
+              placeholder="(253) 555-0148"
+              defaultValue={config.contactPhone}
             />
           </ConfigRow>
         </ConfigSection>

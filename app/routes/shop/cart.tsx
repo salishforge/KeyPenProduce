@@ -13,6 +13,7 @@ import {
 } from "~/services/cart.server";
 import { placeOrder } from "~/services/ordering";
 import { ShopHeader } from "~/components/shop/ShopHeader";
+import { SiteFooter } from "~/components/shop/SiteFooter";
 import { CartLine } from "~/components/shop/CartLine";
 import { BasketIcon } from "~/components/ui/Icons";
 import { formatCents } from "~/lib/money";
@@ -210,6 +211,8 @@ export default function Cart({ loaderData }: Route.ComponentProps) {
           </>
         )}
       </main>
+
+      <SiteFooter />
     </>
   );
 }

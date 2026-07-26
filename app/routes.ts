@@ -24,6 +24,11 @@ export default [
   route("orders/:orderId", "routes/orders/detail.tsx"),
   route("account", "routes/account.tsx"),
 
+  // Public content pages
+  route("privacy", "routes/legal/privacy.tsx"),
+  route("terms", "routes/legal/terms.tsx"),
+  route("contact", "routes/legal/contact.tsx"),
+
   // Admin portal (all children render inside StationShell via layout.tsx <Outlet/>)
   route("admin", "routes/admin/layout.tsx", [
     index("routes/admin/index.tsx"),

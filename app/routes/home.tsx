@@ -2,6 +2,7 @@ import { Link, redirect } from "react-router";
 import type { Route } from "./+types/home";
 import { getSessionUser, landingPathForRole } from "~/auth/session.server";
 import { LeafMark } from "~/components/ui/Icons";
+import { SiteFooter } from "~/components/shop/SiteFooter";
 
 export function meta() {
   return [
@@ -78,6 +79,8 @@ export default function Home() {
           ))}
         </div>
       </main>
+
+      <SiteFooter />
     </>
   );
 }
