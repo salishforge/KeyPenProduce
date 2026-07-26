@@ -1,0 +1,249 @@
+/**
+ * Load-out manifest — screen preview + print output.
+ *
+ * The sheet is authored at a fixed readable width and then simply printed;
+ * @media print strips the app chrome. `print-color-adjust: exact` is essential:
+ * without it browsers drop background fills, which would silently erase the
+ * PAID watermark and the paid/due tints — the exact things staff rely on.
+ */
+
+.kp-manifest-page {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.2rem clamp(0.8rem, 3vw, 2rem) 3rem;
+}
+
+/* Screen-only toolbar */
+.kp-manifest-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
+}
+
+/* The sheet ---------------------------------------------------------------- */
+.kp-manifest {
+  position: relative;
+  background: #fff;
+  color: #14201c;
+  border: 1px solid var(--kp-rule, #d8ddd5);
+  border-radius: var(--kp-radius, 0.6rem);
+  padding: clamp(1.1rem, 3vw, 2rem);
+  overflow: hidden;
+}
+
+/* PAID watermark — only rendered when every supplied item was prepaid. */
+.kp-manifest__wm {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-24deg);
+  font-family: var(--kp-font-display, Georgia, serif);
+  font-weight: 700;
+  font-size: clamp(5rem, 22vw, 11rem);
+  letter-spacing: 0.08em;
+  color: rgba(47, 107, 79, 0.16);
+  border: 0.35rem solid rgba(47, 107, 79, 0.16);
+  border-radius: 1rem;
+  padding: 0.1em 0.18em;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+/* Keep content above the watermark. */
+.kp-manifest > *:not(.kp-manifest__wm) { position: relative; z-index: 1; }
+
+.kp-manifest__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.9rem;
+  border-bottom: 2px solid #14201c;
+}
+.kp-manifest__brand {
+  font-family: var(--kp-font-display, Georgia, serif);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+.kp-manifest__sub {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  color: #4c5b55;
+  margin-top: 0.1rem;
+}
+.kp-manifest__meta {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #4c5b55;
+  line-height: 1.5;
+}
+
+.kp-manifest__who {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 0;
+}
+.kp-manifest__label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.62rem;
+  color: #6b7a73;
+}
+.kp-manifest__name {
+  font-family: var(--kp-font-display, Georgia, serif);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+.kp-manifest__ord {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: #4c5b55;
+}
+
+/* Payment banner ----------------------------------------------------------- */
+.kp-manifest__banner {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  border: 1px solid;
+}
+.kp-manifest__banner.is-paid { background: #e8f2ec; border-color: #2f6b4f; }
+.kp-manifest__banner.is-mixed { background: #fdf3e0; border-color: #8a6d1f; }
+.kp-manifest__banner.is-due { background: #fdeceb; border-color: #9c4221; }
+.kp-manifest__banner.is-settled { background: #eef1ec; border-color: #7d8a83; }
+
+/* Line table --------------------------------------------------------------- */
+.kp-manifest__table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.kp-manifest__table th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.64rem;
+  color: #4c5b55;
+  border-bottom: 1px solid #14201c;
+  padding: 0.4rem 0.5rem;
+}
+.kp-manifest__table td {
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid #e3e7e0;
+  vertical-align: top;
+}
+.kp-manifest__table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.kp-manifest__table .c { text-align: center; width: 2rem; }
+/* Tick box so staff can check items off as they load. */
+.kp-manifest__box {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.5px solid #14201c;
+  border-radius: 0.2rem;
+}
+.kp-manifest__short {
+  display: block;
+  font-size: 0.72rem;
+  color: #9c4221;
+  font-weight: 600;
+}
+
+/* Per-line payment tags */
+.kp-ptag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.45rem;
+  border-radius: 0.25rem;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.kp-ptag--prepaid { background: #e8f2ec; border-color: #2f6b4f; color: #1f4c37; }
+.kp-ptag--paid { background: #eef1ec; border-color: #5c6b64; color: #35443d; }
+.kp-ptag--due { background: #fdeceb; border-color: #9c4221; color: #7d3319; }
+
+/* Not-supplied + totals ---------------------------------------------------- */
+.kp-manifest__missing { margin-top: 1rem; font-size: 0.86rem; }
+.kp-manifest__missing h3 {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9c4221;
+  margin: 0 0 0.3rem;
+}
+.kp-manifest__missing ul { margin: 0; padding-left: 1.1rem; color: #4c5b55; }
+
+.kp-manifest__totals {
+  margin: 1.2rem 0 0;
+  margin-left: auto;
+  max-width: 20rem;
+  font-size: 0.92rem;
+}
+.kp-manifest__trow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.kp-manifest__trow--due {
+  border-top: 2px solid #14201c;
+  margin-top: 0.3rem;
+  padding-top: 0.5rem;
+  font-size: 1.05rem;
+}
+.kp-manifest__trow--due.is-owed { color: #9c4221; font-weight: 700; }
+
+.kp-manifest__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #e3e7e0;
+  font-size: 0.78rem;
+  color: #4c5b55;
+}
+.kp-manifest__sign { flex: 1 1 14rem; }
+.kp-manifest__rule {
+  display: block;
+  border-bottom: 1px solid #14201c;
+  height: 1.6rem;
+  max-width: 16rem;
+}
+.kp-manifest__thanks { text-align: right; }
+.kp-manifest__biz { font-weight: 600; color: #14201c; }
+
+/* Print -------------------------------------------------------------------- */
+@media print {
+  @page { margin: 12mm; }
+  /* Backgrounds carry meaning here (watermark, paid/due tints) — keep them. */
+  .kp-manifest,
+  .kp-manifest * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .kp-manifest-bar { display: none; }
+  .kp-manifest-page { max-width: none; margin: 0; padding: 0; }
+  .kp-manifest {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    /* Don't split a manifest across sheets when it can be avoided. */
+    break-inside: avoid;
+  }
+  .kp-manifest__table { font-size: 10.5pt; }
+  .kp-manifest__table thead { display: table-header-group; }
+  .kp-manifest__table tr { break-inside: avoid; }
+}

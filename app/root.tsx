@@ -15,6 +15,7 @@ import "~/styles/theme.css";
 import "~/styles/shop.css";
 import "~/styles/admin.css";
 import "~/styles/preservation.css";
+import "~/styles/manifest.css";
 
 // Fonts via <link> (preconnect + one combined Google Fonts sheet), kept out of
 // CSS @import to avoid the render-blocking penalty.
