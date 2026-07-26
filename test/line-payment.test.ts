@@ -152,6 +152,35 @@ describe("per-item payment", () => {
     expect(summary.prepaidCents).toBe(800);
   });
 
+  it("leaves nothing due after the outstanding balance is settled", async () => {
+    const { db, orderId, listingId } = await orderWithTwoLines();
+    await db
+      .update(reservations)
+      .set({ paidStatus: "prepaid", paidAt: new Date() })
+      .where(
+        and(
+          eq(reservations.orderId, orderId),
+          eq(reservations.listingId, listingId),
+        ),
+      )
+      .run();
+
+    // The desk charges `dueCents` (300), not the order total (1100) — the
+    // prepaid line must never be collected for a second time.
+    const before = await summarizeOrderPayment(db, orderId);
+    expect(before.dueCents).toBe(300);
+
+    await markOrderPaidManually(db, {
+      orderId,
+      method: "cash",
+      amountCents: before.dueCents,
+      recordedByUserId: "admin",
+    });
+
+    const after = await summarizeOrderPayment(db, orderId);
+    expect(after.dueCents).toBe(0);
+  });
+
   it("bills a partially-shorted line at the fulfilled quantity", () => {
     expect(
       lineAmountCents({

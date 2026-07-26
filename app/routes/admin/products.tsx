@@ -123,6 +123,34 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { ok: true };
   }
 
+  // Link one supplier to many products at once — the practical way to get a
+  // freshly-imported catalog ready to list without touching each card.
+  if (intent === "bulk-link-supplier") {
+    let supplierId = String(form.get("supplierId") ?? "");
+    if (supplierId === NEW_SUPPLIER) {
+      const newName = String(form.get("newSupplierName") ?? "").trim();
+      if (!newName) return { error: "Enter a name for the new supplier." };
+      supplierId = (await createSupplier(db, { name: newName })).id;
+    }
+    const productIds = form.getAll("productIds").map(String).filter(Boolean);
+    if (!supplierId) return { error: "Pick a supplier to link." };
+    if (productIds.length === 0)
+      return { error: "Select at least one product to link." };
+    const wholesale = String(form.get("wholesale") ?? "").trim();
+    let linked = 0;
+    for (const productId of productIds) {
+      try {
+        // Pass the cost only when given, so re-linking doesn't zero an
+        // existing per-supplier cost (see linkSupplier).
+        await linkSupplier(db, productId, supplierId, wholesale || undefined);
+        linked++;
+      } catch {
+        // Skip anything that can't be linked; report the total that worked.
+      }
+    }
+    return { ok: true, message: `Linked ${linked} product${linked === 1 ? "" : "s"}.` };
+  }
+
   if (intent === "unlink-supplier") {
     await unlinkSupplier(
       db,
@@ -158,6 +186,7 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
   const { products, suppliers, unitOptions, categoryOptions } = loaderData;
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const q = query.trim().toLowerCase();
   const filtered = products.filter((p) => {
@@ -169,6 +198,25 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
       p.suppliers.some((s) => s.name.toLowerCase().includes(q))
     );
   });
+
+  const toggle = (id: string) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  // "Select all" acts on what's currently filtered — link every Vegetable,
+  // every search hit, etc.
+  const allShownSelected =
+    filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const toggleAllShown = () =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (allShownSelected) filtered.forEach((p) => next.delete(p.id));
+      else filtered.forEach((p) => next.add(p.id));
+      return next;
+    });
 
   return (
     <>
@@ -182,6 +230,10 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
           </p>
         </div>
       </div>
+
+      {actionData && "message" in actionData && actionData.message && (
+        <p className="kp-notice" role="status">{actionData.message}</p>
+      )}
 
       <Form method="post" className="kp-card" style={{ padding: "1.1rem", marginBottom: "1.4rem" }}>
         <input type="hidden" name="intent" value="create" />
@@ -277,6 +329,26 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
         </div>
       )}
 
+      {filtered.length > 0 && (
+        <div className="kp-bulkbar">
+          <label className="kp-bulkbar__all">
+            <input
+              type="checkbox"
+              checked={allShownSelected}
+              onChange={toggleAllShown}
+            />
+            Select all shown ({filtered.length})
+          </label>
+          {selected.size > 0 && (
+            <BulkLinkForm
+              suppliers={suppliers}
+              productIds={[...selected]}
+              onDone={() => setSelected(new Set())}
+            />
+          )}
+        </div>
+      )}
+
       <div className="kp-prodlist">
         {products.length === 0 && (
           <p className="kp-muted">No products yet. Add one above.</p>
@@ -288,24 +360,102 @@ export default function Products({ loaderData, actionData }: Route.ComponentProp
           </p>
         )}
         {filtered.map((p) => (
-          <ProductCard key={p.id} product={p} suppliers={suppliers} />
+          <ProductCard
+            key={p.id}
+            product={p}
+            suppliers={suppliers}
+            selected={selected.has(p.id)}
+            onToggle={() => toggle(p.id)}
+          />
         ))}
       </div>
     </>
   );
 }
 
+/**
+ * Link one supplier to every selected product. Rendered only when something is
+ * selected; the ids ride along as hidden inputs so this stays a plain form post.
+ */
+function BulkLinkForm({
+  suppliers,
+  productIds,
+  onDone,
+}: {
+  suppliers: SupplierOption[];
+  productIds: string[];
+  onDone: () => void;
+}) {
+  const [supplierId, setSupplierId] = useState(
+    suppliers.length ? suppliers[0].id : NEW_SUPPLIER,
+  );
+  const creating = supplierId === NEW_SUPPLIER;
+  return (
+    <Form method="post" className="kp-bulkbar__form" onSubmit={onDone}>
+      <input type="hidden" name="intent" value="bulk-link-supplier" />
+      {productIds.map((id) => (
+        <input type="hidden" name="productIds" value={id} key={id} />
+      ))}
+      <span className="kp-bulkbar__n">{productIds.length} selected</span>
+      <select
+        className="kp-select"
+        name="supplierId"
+        value={supplierId}
+        onChange={(e) => setSupplierId(e.target.value)}
+        aria-label="Supplier to link to selected products"
+      >
+        {suppliers.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+        <option value={NEW_SUPPLIER}>+ New supplier…</option>
+      </select>
+      {creating && (
+        <input
+          className="kp-input"
+          name="newSupplierName"
+          placeholder="New supplier name"
+          required
+          aria-label="New supplier name"
+        />
+      )}
+      <input
+        className="kp-input"
+        name="wholesale"
+        placeholder="cost (optional)"
+        aria-label="Wholesale cost for all selected"
+        style={{ maxWidth: "9rem" }}
+      />
+      <button type="submit" className="kp-btn kp-btn--primary kp-btn--sm">
+        Link to selected
+      </button>
+    </Form>
+  );
+}
+
 function ProductCard({
   product,
   suppliers,
+  selected,
+  onToggle,
 }: {
   product: LoaderProduct;
   suppliers: SupplierOption[];
+  selected: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <article className="kp-prodcard">
+    <article className={`kp-prodcard${selected ? " is-selected" : ""}`}>
       <div className="kp-prodcard__head">
         <div className="kp-prodcard__id">
+          <input
+            type="checkbox"
+            className="kp-prodcard__pick"
+            checked={selected}
+            onChange={onToggle}
+            aria-label={`Select ${product.name}`}
+          />
           {product.imageUrl ? (
             <img className="kp-prodcard__thumb" src={product.imageUrl} alt="" />
           ) : (
