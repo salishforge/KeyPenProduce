@@ -37,6 +37,7 @@ import { ListingCard } from "~/components/shop/ListingCard";
 import { Basket } from "~/components/shop/Basket";
 import { CartBar } from "~/components/shop/CartBar";
 import { Rhythm } from "~/components/shop/Rhythm";
+import { SiteFooter } from "~/components/shop/SiteFooter";
 import { LivePoll } from "~/components/live-poll";
 
 export function meta(_: Route.MetaArgs) {
@@ -265,6 +266,8 @@ export default function ShopRoute({ loaderData }: Route.ComponentProps) {
       </div>
 
       <Rhythm />
+
+      <SiteFooter />
 
       {/* Thumb-reachable basket bar (mobile); desktop uses the sticky sidebar. */}
       <CartBar

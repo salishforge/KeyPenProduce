@@ -455,3 +455,123 @@
 }
 .kp-auth__submit { width: 100%; justify-content: center; }
 
+
+/* Legal / content pages (Privacy, Terms, Contact) ---------------------------- */
+.kp-legal {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.6rem clamp(1rem, 4vw, 2.5rem) 3rem;
+}
+.kp-legal__draft {
+  margin: 0 0 1.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--kp-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--kp-honey) 45%, transparent);
+  background: color-mix(in srgb, var(--kp-honey) 12%, transparent);
+  color: var(--kp-ink);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.kp-legal__title {
+  font-family: var(--kp-font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin: 0 0 0.4rem;
+  text-wrap: balance;
+}
+.kp-legal__updated {
+  margin: 0 0 1rem;
+  color: var(--kp-ink-soft);
+  font-size: 0.85rem;
+}
+.kp-legal__intro {
+  font-family: var(--kp-font-accent);
+  font-style: italic;
+  color: var(--kp-ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0 0 1.8rem;
+}
+.kp-legal__body { color: var(--kp-ink); line-height: 1.6; }
+.kp-legal__body h2 {
+  font-family: var(--kp-font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 1.8rem 0 0.5rem;
+}
+.kp-legal__body p { margin: 0 0 0.9rem; }
+.kp-legal__body ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+.kp-legal__body li { margin: 0 0 0.5rem; }
+.kp-legal__body a { color: var(--kp-tide); text-decoration: underline; }
+.kp-legal__back { margin: 2.2rem 0 0; }
+.kp-legal__back a { color: var(--kp-tide); }
+
+/* Contact detail list */
+.kp-contact { margin: 0 0 1.4rem; }
+.kp-contact__row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--kp-rule-soft);
+}
+.kp-contact__row dt {
+  flex: 0 0 5.5rem;
+  font-weight: 600;
+  color: var(--kp-ink-soft);
+}
+.kp-contact__row dd { margin: 0; }
+
+/* Site footer --------------------------------------------------------------- */
+.kp-footer {
+  border-top: 1px solid var(--kp-rule);
+  background: var(--kp-paper-raised);
+  margin-top: 2rem;
+}
+.kp-footer__inner {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.6rem clamp(1rem, 4vw, 2.5rem) 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.kp-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--kp-font-display);
+  font-weight: 600;
+}
+.kp-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+}
+.kp-footer__nav a {
+  color: var(--kp-ink-soft);
+  text-decoration: none;
+  font-size: 0.92rem;
+  min-height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+}
+.kp-footer__nav a:hover { color: var(--kp-tide); text-decoration: underline; }
+.kp-footer__fine {
+  margin: 0;
+  color: var(--kp-ink-soft);
+  font-size: 0.82rem;
+}
+@media (min-width: 40rem) {
+  .kp-footer__inner {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .kp-footer__nav { margin-left: auto; }
+  .kp-footer__fine { flex-basis: 100%; }
+}
+/* On phones the sticky basket bar can pin to the bottom; keep it off the
+   footer links. The bar is hidden at ≥60rem, so the clearance is too. */
+@media (max-width: 60rem) {
+  .kp-footer__inner { padding-bottom: 5rem; }
+}

@@ -18,6 +18,12 @@ export interface StoreConfig {
   storeName: string;
   tagline: string;
   pickupLocation: string;
+  /** Legal/business name used in policies (may differ from the storefront name). */
+  businessName: string;
+  /** Public contact email shown on the Contact page + footer. */
+  contactEmail: string;
+  /** Optional public contact phone. Empty = hidden. */
+  contactPhone: string;
   accentHex: string;
   /** e.g. "thu-18:00" */
   orderCloses: string;
@@ -35,6 +41,9 @@ export const DEFAULT_CONFIG: StoreConfig = {
   storeName: "Key Pen Produce",
   tagline: "Key Peninsula produce, picked to your order.",
   pickupLocation: "Key Center barn",
+  businessName: "Key Pen Produce",
+  contactEmail: "",
+  contactPhone: "",
   accentHex: "#7b2d4e",
   orderCloses: "thu-18:00",
   pickupWindow: "sat-09:00-12:00",
