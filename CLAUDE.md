@@ -121,9 +121,22 @@ The build only works with React Router's `future.v8_viteEnvironmentApi: true`
 integrated path. Do **not** enable `v8_middleware`: it switches loader `context` to the
 new provider API and breaks the `context.cloudflare.env` access used throughout. The
 toolchain is pinned to a known-good set (React Router 7.16, `@cloudflare/vite-plugin`
-1.29.1, **Vite 6** — Vite 8/rolldown currently fails to bundle better-auth's deps).
+1.47.0, **Vite 6** — Vite 8/rolldown currently fails to bundle better-auth's deps).
 `shims/kysely.ts` patches a broken `kysely` re-export pulled in by better-auth's unused
 kysely-adapter; keep the alias in `vite.config.ts`.
+
+**Keep vitest and `@cloudflare/vitest-pool-workers` in lockstep.** The pool peer-depends
+on an exact vitest major (v0.18 → vitest 4), so bumping one alone makes `npm install`
+fail to resolve on a clean clone even though an existing `node_modules` keeps working.
+The v3→v4 move also changed two things worth remembering: pool options left
+`test.poolOptions.workers` for the `cloudflareTest()` Vite plugin (`vitest.config.ts`),
+and the implicit `isolatedStorage` rollback is gone — `test/apply-migrations.ts` now
+calls `reset()` + `applyD1Migrations` in a `beforeEach` to give each test a clean D1.
+`cloudflare:test`'s `env` is typed as `Cloudflare.Env` now, so test-only bindings are
+declared by merging into that interface (`test/env.d.ts`), not the removed `ProvidedEnv`.
+
+E2E: set `PLAYWRIGHT_CHROMIUM_PATH` to use a pre-installed Chromium when the sandbox's
+build predates the one Playwright wants; unset, Playwright resolves its own browser.
 
 ## Secrets
 
