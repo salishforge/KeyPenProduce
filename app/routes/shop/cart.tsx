@@ -80,7 +80,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: "Your cart is empty." };
     }
     const db = getDb(env.DB);
-    const pickupName = String(form.get("pickupName") ?? user.name);
+    // A blank field must not become a nameless order — the pickup desk sorts
+    // and calls people by this. Fall back to the account name.
+    const pickupName =
+      String(form.get("pickupName") ?? "").trim() || user.name;
     const result = await placeOrder(db, {
       userId: user.id,
       windowId: cart.windowId,
