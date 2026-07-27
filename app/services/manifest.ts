@@ -116,7 +116,9 @@ async function buildOne(
   return {
     orderId: order.id,
     customerName,
-    pickupName: order.pickupName ?? customerName,
+    // Blank (not just null) pickup names fall back — a sheet must never go to
+    // the desk without a name on it, and the batch sorts by this field.
+    pickupName: order.pickupName?.trim() || customerName,
     storeName: ctx.config.storeName,
     businessName: ctx.config.businessName || ctx.config.storeName,
     contactEmail: ctx.config.contactEmail,

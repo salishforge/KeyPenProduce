@@ -124,6 +124,23 @@ describe("window manifests (batch print)", () => {
     expect(sheet.notSupplied).toHaveLength(1);
   });
 
+  it("falls back to the account name when the pickup name is blank", async () => {
+    const { db, windowId, alice } = await seedWindowWithOrders();
+    // A customer who cleared the field: "" is not null, so a naive
+    // `pickupName ?? name` would print a nameless sheet.
+    await db
+      .update(orders)
+      .set({ pickupName: "   " })
+      .where(eq(orders.id, alice))
+      .run();
+
+    const sheet = (await getWindowManifests(db, appEnv, windowId))!.sheets.find(
+      (s) => s.orderId === alice,
+    )!;
+    expect(sheet.pickupName.trim()).not.toBe("");
+    expect(sheet.pickupName).toBe(sheet.customerName);
+  });
+
   it("returns null for an unknown window", async () => {
     const db = getDb(env.DB);
     expect(await getWindowManifests(db, appEnv, "win_nope")).toBeNull();

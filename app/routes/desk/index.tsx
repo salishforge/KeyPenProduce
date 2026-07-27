@@ -91,6 +91,9 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
           (o.pickupName ?? "").toLowerCase().includes(q),
       )
     : pickups;
+  /** Blank pickup names fall back to the account name (see cart submit). */
+  const nameFor = (o: (typeof pickups)[number]) =>
+    o.pickupName?.trim() || o.customer;
   const owing = pickups.filter((o) => o.paymentStatus !== "paid").length;
 
   return (
@@ -167,10 +170,8 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
                     className="kp-deskcard"
                   >
                     <div className="kp-deskcard__main">
-                      <div className="kp-deskcard__name">
-                        {o.pickupName ?? o.customer}
-                      </div>
-                      {o.pickupName && o.pickupName !== o.customer && (
+                      <div className="kp-deskcard__name">{nameFor(o)}</div>
+                      {nameFor(o) !== o.customer && (
                         <div className="kp-deskcard__sub">
                           ordered by {o.customer}
                         </div>

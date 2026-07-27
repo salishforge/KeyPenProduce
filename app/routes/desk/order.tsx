@@ -112,7 +112,7 @@ export default function DeskOrder({ loaderData }: Route.ComponentProps) {
         <div className="kp-card" style={{ padding: "1.2rem", marginBottom: "1rem" }}>
           <h1 style={{ marginTop: 0, marginBottom: "0.35rem" }}>{customer?.name}</h1>
           <p className="kp-muted" style={{ margin: "0 0 0.5rem", fontSize: "0.88rem" }}>
-            Pickup name: {order.pickupName ?? customer?.name}
+            Pickup name: {order.pickupName?.trim() || customer?.name}
           </p>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <span className={`kp-badge ${orderStatusVariant(order.status)}`}>
