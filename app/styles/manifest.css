@@ -225,6 +225,21 @@
 .kp-manifest__thanks { text-align: right; }
 .kp-manifest__biz { font-weight: 600; color: #14201c; }
 
+/* Batch print (a whole order period) --------------------------------------- */
+.kp-batchhead { margin-bottom: 1.4rem; }
+.kp-batchhead h1 {
+  font-family: var(--kp-font-display);
+  font-weight: 700;
+  font-size: clamp(1.35rem, 4vw, 1.8rem);
+  margin: 0 0 0.3rem;
+}
+.kp-batchhead p { margin: 0 0 0.25rem; font-size: 0.9rem; }
+.kp-batchhead__hint { font-size: 0.84rem; }
+
+.kp-batch { display: grid; gap: 1.6rem; }
+/* On screen each sheet reads as a separate card; in print each is a page. */
+.kp-batch__sheet { border-radius: var(--kp-radius); }
+
 /* Print -------------------------------------------------------------------- */
 @media print {
   @page { margin: 12mm; }
@@ -246,4 +261,19 @@
   .kp-manifest__table { font-size: 10.5pt; }
   .kp-manifest__table thead { display: table-header-group; }
   .kp-manifest__table tr { break-inside: avoid; }
+
+  /* Batch: one customer per page. The screen-only header and the gap between
+     sheets are dropped so no blank page is emitted, and the last sheet must
+     NOT force a trailing page break. */
+  .kp-batchhead { display: none; }
+  .kp-batch { display: block; gap: 0; }
+  .kp-batch__sheet {
+    break-after: page;
+    page-break-after: always; /* legacy alias, still needed by some engines */
+    break-inside: avoid;
+  }
+  .kp-batch__sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }

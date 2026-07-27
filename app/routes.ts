@@ -51,6 +51,7 @@ export default [
   route("desk", "routes/desk/index.tsx"),
   route("desk/order/:orderId", "routes/desk/order.tsx"),
   route("desk/order/:orderId/manifest", "routes/desk/manifest.tsx"),
+  route("desk/window/:windowId/manifests", "routes/desk/manifests.tsx"),
 
   // Resource routes
   route("api/stripe/webhook", "routes/api/stripe-webhook.tsx"),

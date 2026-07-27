@@ -148,6 +148,12 @@ export default function WindowDetail({ loaderData }: Route.ComponentProps) {
               <Link to={`/admin/windows/${win.id}/reconcile`} className="kp-btn kp-btn--outline kp-btn--sm">
                 Reconcile pickup
               </Link>
+              <Link
+                to={`/desk/window/${win.id}/manifests`}
+                className="kp-btn kp-btn--outline kp-btn--sm"
+              >
+                Print all load-out sheets
+              </Link>
             </>
           ) : null}
         </div>

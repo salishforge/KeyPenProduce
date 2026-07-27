@@ -618,3 +618,5 @@ table.kp-ledger .prod em {
   border-color: var(--kp-tide);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--kp-tide) 22%, transparent);
 }
+.kp-desk__batch { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.kp-desk__batch .kp-btn { min-height: 2.6rem; }

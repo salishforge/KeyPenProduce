@@ -1,7 +1,12 @@
 import { Form, Link, redirect, useActionData, useSearchParams } from "react-router";
 import type { Route } from "./+types/signup";
 import { createAuth, configuredSocialProviders } from "~/auth/auth.server";
-import { getSessionUser, landingPathForRole } from "~/auth/session.server";
+import {
+  getSessionUser,
+  landingPathForRole,
+  resolvePostAuthPath,
+  sanitizeRedirectPath,
+} from "~/auth/session.server";
 import { redirectWithCookies } from "~/auth/forward";
 import { LeafMark } from "~/components/ui/Icons";
 
@@ -25,7 +30,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (intent === "google" || intent === "facebook") {
     const res = await auth.api.signInSocial({
-      body: { provider: intent, callbackURL: redirectTo },
+      // Sanitized — see login.tsx: the callback must stay same-origin.
+      body: { provider: intent, callbackURL: sanitizeRedirectPath(redirectTo) },
       asResponse: true,
     });
     const data = (await res.clone().json().catch(() => null)) as
@@ -48,7 +54,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       body: { name, email, password },
       asResponse: true,
     });
-    if (res.ok) return redirectWithCookies(redirectTo, res);
+    // New accounts are always role `client`, so this lands them on the shop
+    // (or back where they were, e.g. /cart mid-basket).
+    if (res.ok)
+      return redirectWithCookies(resolvePostAuthPath("client", redirectTo), res);
     return { error: "Could not create account. Email may already be in use." };
   } catch {
     return { error: "Could not create account. Email may already be in use." };

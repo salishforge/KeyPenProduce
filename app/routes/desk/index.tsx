@@ -141,6 +141,19 @@ export default function Desk({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
 
+            {/* Pickup-morning: print the whole stack in one job, per week. */}
+            <div className="kp-desk__batch">
+              {windows.map((w) => (
+                <Link
+                  key={w.id}
+                  to={`/desk/window/${w.id}/manifests`}
+                  className="kp-btn kp-btn--outline kp-btn--sm"
+                >
+                  Print all sheets{windows.length > 1 ? ` · ${w.label}` : ""}
+                </Link>
+              ))}
+            </div>
+
             <div className="kp-desk__list">
               {shown.length === 0 && (
                 <p className="kp-muted">No one matching “{query}”.</p>

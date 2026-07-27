@@ -1,8 +1,17 @@
 import { Form, Link, redirect, useActionData, useSearchParams } from "react-router";
 import type { Route } from "./+types/login";
+import { eq } from "drizzle-orm";
 import { createAuth, configuredSocialProviders } from "~/auth/auth.server";
-import { getSessionUser, landingPathForRole } from "~/auth/session.server";
+import {
+  getSessionUser,
+  landingPathForRole,
+  resolvePostAuthPath,
+  sanitizeRedirectPath,
+} from "~/auth/session.server";
 import { redirectWithCookies } from "~/auth/forward";
+import { getDb } from "~/db/client";
+import { user as userTable } from "~/db/schema";
+import type { UserRole } from "~/db/schema";
 import { LeafMark } from "~/components/ui/Icons";
 
 export function meta() {
@@ -27,7 +36,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   try {
     if (intent === "google" || intent === "facebook") {
       const res = await auth.api.signInSocial({
-        body: { provider: intent, callbackURL: redirectTo },
+        // Sanitized: the callback URL comes from a query param, so it must not
+        // be able to bounce the user off-site after auth.
+        body: { provider: intent, callbackURL: sanitizeRedirectPath(redirectTo) },
         asResponse: true,
       });
       const data = (await res.clone().json().catch(() => null)) as
@@ -43,7 +54,18 @@ export async function action({ request, context }: Route.ActionArgs) {
       body: { email, password },
       asResponse: true,
     });
-    if (res.ok) return redirectWithCookies(redirectTo, res);
+    if (res.ok) {
+      // Land staff in their portal and customers in the shop, instead of
+      // bouncing everyone through "/" (which also stranded an admin on the
+      // storefront when they signed in from the shop header).
+      const db = getDb(env.DB);
+      const [row] = await db
+        .select({ role: userTable.role })
+        .from(userTable)
+        .where(eq(userTable.email, email));
+      const role = (row?.role as UserRole) ?? "client";
+      return redirectWithCookies(resolvePostAuthPath(role, redirectTo), res);
+    }
     return { error: "Invalid email or password." };
   } catch {
     return { error: "Invalid email or password." };
