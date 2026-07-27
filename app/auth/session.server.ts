@@ -72,3 +72,73 @@ export function landingPathForRole(role: UserRole): string {
       return "/shop";
   }
 }
+
+/**
+ * Reduce a caller-supplied `redirectTo` to a safe same-origin path, or "/" when
+ * it isn't one. Used for the OAuth callback, where the role isn't known until
+ * the provider returns — landing on "/" then role-bounces via the home route.
+ */
+export function sanitizeRedirectPath(
+  redirectTo: string | null | undefined,
+): string {
+  if (!redirectTo) return "/";
+  if (!redirectTo.startsWith("/") || redirectTo.startsWith("//")) return "/";
+  return redirectTo;
+}
+
+/** Roles that run the business portal / pickup desk rather than shopping. */
+const STAFF_ROLES: ReadonlySet<UserRole> = new Set<UserRole>([
+  "admin",
+  "product_admin",
+  "fulfillment",
+]);
+
+/** Can this role actually open `path`? Mirrors the requireRole checks. */
+function roleCanReach(role: UserRole, path: string): boolean {
+  if (path.startsWith("/admin")) {
+    return role === "admin" || role === "product_admin";
+  }
+  if (path.startsWith("/desk")) {
+    return role === "fulfillment" || role === "admin";
+  }
+  return true;
+}
+
+/**
+ * Where to send someone straight after signing in or signing up.
+ *
+ * Staff go to their portal (admin -> /admin, fulfillment -> /desk) and
+ * customers go to the storefront, rather than everyone bouncing through "/".
+ * An explicit `redirectTo` is honored only when it's a real, same-origin
+ * destination the role can actually open — so a customer is never dropped into
+ * a staff area they'd get a 403 from, and staff aren't stranded on the
+ * storefront just because they signed in from the shop header.
+ *
+ * The one deliberate exception is /cart: a staff member who was mid-basket
+ * genuinely meant to go there, so that intent is preserved.
+ *
+ * This is also the guard against open redirects — anything that isn't a plain
+ * same-origin path ("//evil.com", "https://evil.com", "javascript:...") is
+ * discarded in favour of the role's home.
+ */
+export function resolvePostAuthPath(
+  role: UserRole,
+  redirectTo: string | null | undefined,
+): string {
+  const home = landingPathForRole(role);
+  if (!redirectTo) return home;
+
+  // Same-origin absolute paths only. "//host" is protocol-relative (off-site).
+  if (!redirectTo.startsWith("/") || redirectTo.startsWith("//")) return home;
+  // "/" is the generic default, not somewhere the user asked to go.
+  if (redirectTo === "/") return home;
+
+  if (!roleCanReach(role, redirectTo)) return home;
+
+  const isStaffArea =
+    redirectTo.startsWith("/admin") || redirectTo.startsWith("/desk");
+  if (STAFF_ROLES.has(role) && !isStaffArea && redirectTo !== "/cart") {
+    return home;
+  }
+  return redirectTo;
+}
